@@ -24,7 +24,7 @@
                 </a>
                 <ul class="chat-sidebar-menu">
                     <li class="active"><a href="#" data-title="Chats"><i class="ri-chat-3-line"></i></a></li>
-                    <li><a href="#" data-title="Contacts"><i class="ri-contacts-line"></i></a></li>
+                    <li><a href="/groups" data-title="groups"><i class="ri-contacts-line"></i></a></li>
                     <li><a href="#" data-title="Documents"><i class="ri-folder-line"></i></a></li>
                     <li><a href="#" data-title="Settings"><i class="ri-settings-line"></i></a></li>
                     <li class="chat-sidebar-profile">
@@ -64,9 +64,7 @@
 
                                 <a href="{{ url_for('open_chat', chat_type=chat.type, chat_id=chat.id) }}"
                                     class="chat-item" data-conversation="#conversation-1" data-chat-id="{{ chat.id }}"
-                                    data-chat-type="{{ chat.type }}" style="text-decoration: none; color: black;"
-                                    onclick="updateChatHeader('{{ chat.name }}');">
-
+                                    data-chat-type="{{ chat.type }}" style="text-decoration: none; color: black;">
                                     <div class="chat-content-list">
                                         <img class="content-message-image" src="{{ chat.image }}" alt="Chat Image"
                                             onerror="this.src='/static/images/default-profile.png';">
@@ -136,18 +134,17 @@
                 </div>
                 <!-- end: Content side -->
                 <!-- start: Conversation -->
-                <div class="conversation conversation-default active">
+                <div class="welcome-content conversation-default active">
                     <img src="{{ url_for('static', filename='images/dsa-logo.png') }}"
                         style="width: 200px; height: 200px;" alt="">
                     <p style="font-size: 30px;">Select chat and view conversation!</p>
                 </div>
-                <div class="conversation" id="conversation-1">
+                <div class="conversation hidden" id="conversation-1">
                     <div class="conversation-top">
                         <button type="button" class="conversation-back"><i class="ri-arrow-left-line"></i></button>
                         <div class="conversation-user">
                             <div class="imgText">
                                 <div class="chat-header userimg" style="display: inline-flex;">
-
                                     <img id="chatHeaderImg" src="" alt="Chat Image" class="cover">
                                     <h4 id="chatHeader" style="margin-top: 15px;"></h4>
                                 </div>
@@ -160,15 +157,26 @@
                         </div>
                     </div>
                     <div class="conversation-main" id="conversation-main"></div>
-
-
-
                     <div class="conversation-form" id="chatInput">
                         <!-- <button type="button" class="conversation-form-button"><i class="ri-emotion-line"></i></button> -->
                         <button type="button" class="conversation-form-button" id="attachFileIcon"><i
                                 class="ri-attachment-line"></i></button>
+                        
                         <div class="conversation-form-group">
                             <input type="file" id="fileInput" style="display: none;">
+                            <!-- Hidden input to store reply message ID -->
+                            <!-- <div class="reply-preview" id="replyPreview" style="display: none;">
+                                <span id="replyContent"></span>
+                                <button id="closeReply" class="close-reply-btn"><i class="ri-close-line"></i></button>
+                            </div> -->
+
+                            <div id="replyPreview" style="display: none;">
+                                <div id="replyContent"></div>
+                                <button id="cancelReply" onclick="cancelReply()">×</button>
+                            </div>
+
+                            <!-- Message input field -->
+                            <input type="hidden" id="reply_to_message_id" name="reply_to_message_id">
                             <input type="text" id="messageInput" class="conversation-form-input" rows="1"
                                 placeholder="Type here..."></input>
                             <button type="button" class="conversation-form-record"><i class="ri-mic-line"></i></button>
@@ -182,6 +190,24 @@
             </div>
             <!-- end: Content -->
         </div>
+
+
+        <!-- Modal HTML -->
+        <div id="forwardModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Forward Message</h2>
+                <div class="forward-preview">
+                    <!-- Preview of the message being forwarded -->
+                    <div id="forwardMessagePreview"></div>
+                </div>
+                <input type="text" id="forwardSearchInput" placeholder="Search users or groups..." class="search-bar">
+                <ul id="forwardTargetList" class="target-list"></ul>
+                <button id="confirmForwardBtn" class="forward-btn">Forward</button>
+            </div>
+        </div>
+
+
     </section>
     <!-- end: Chat -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"

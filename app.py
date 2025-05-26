@@ -28,8 +28,6 @@ from routes.profile_routes import profile_bp
 
 
 
-
-
 # ======================= FLASK APP SETUP =============================================================
 
 app = Flask(__name__)
@@ -39,8 +37,8 @@ CORS(app, supports_credentials=True)
 app.permanent_session_lifetime = timedelta(hours=2)
 
 # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
-# ======================= DATABASE CONNECTION =========================================================
+ 
+# ======================= DATABASE CONNECTION ==========================================================
 MONGO_URI = "mongodb://localhost:27017/chatDatabase"
 
 # Simple local client
@@ -201,6 +199,10 @@ def handle_send_message(data):
     private_chat_id = data.get("private_chat_id")
     message = data.get("message")
     message_type = data.get("message_type", "text")
+    reply_to_message_id = data.get("reply_to_message_id")
+
+    user = db.users.find_one({"_id": ObjectId(user_id)}, {"firstname": 1, "lastname": 1})
+    sender_name = f"{user.get('firstname', '')} {user.get('lastname', '')}".strip() if user else "Unknown"
 
     if not group_id and not private_chat_id:
         print("❌ ERROR: Message must belong to either a group or private chat")
@@ -213,7 +215,6 @@ def handle_send_message(data):
         if group_id:
             group = db.groups.find_one({"_id": ObjectId(group_id)})
             if group:
-                # Exclude sender from delivery list
                 delivered_to = [ObjectId(uid) for uid in group.get("members", []) if str(uid) != user_id]
 
         message_doc = {
@@ -225,10 +226,13 @@ def handle_send_message(data):
             "timestamp": datetime.utcnow(),
             "read_by": read_by,
             "delivered_to": [],
-            "status": "sent"
+            "status": "sent",
+            "reply_to_message_id": ObjectId(reply_to_message_id) if reply_to_message_id else None
         }
 
         message_id = db.messages.insert_one(message_doc).inserted_id
+
+        print(f"Sender Name: {sender_name}")
 
         message_data = {
             "id": str(message_id),
@@ -240,15 +244,45 @@ def handle_send_message(data):
             "timestamp": int(message_doc["timestamp"].timestamp() * 1000),
             "status": "sent",
             "read_by": [str(uid) for uid in message_doc["read_by"]],
-            "delivered_to": [str(uid) for uid in message_doc["delivered_to"]]
+            "delivered_to": [str(uid) for uid in message_doc["delivered_to"]],
+            "sender": sender_name,
+            "reply_to_message_id": str(reply_to_message_id) if reply_to_message_id else None
         }
 
+        # Attach quoted reply message details if applicable
+        if reply_to_message_id:
+            try:
+                original_msg = db.messages.find_one({"_id": ObjectId(reply_to_message_id)}, {
+                    "message": 1,
+                    "message_type": 1,
+                    "user_id": 1
+                })
+
+                if original_msg:
+                    replied_user = db.users.find_one({"_id": original_msg["user_id"]}, {"firstname": 1, "lastname": 1})
+                    original_sender = f'{replied_user.get("firstname", "")} {replied_user.get("lastname", "")}'.strip() if replied_user else "Unknown"
+
+                    message_data["reply_to"] = {
+                        "message": original_msg.get("message", ""),
+                        "message_type": original_msg.get("message_type", "text"),
+                        "sender": original_sender,
+                        "message_id": str(original_msg["_id"])
+                    }
+
+            except Exception as e:
+                print(f"⚠️ Failed to fetch original reply message: {e}")
+
         room = str(group_id) if group_id else str(private_chat_id)
+        print("Emitting message data:", message_data)
         socketio.emit("receive_message", message_data, room=room)
         print(f"📡 Message sent to {room}")
 
     except Exception as e:
         print(f"❌ Error sending message: {e}")
+
+
+
+
 
 # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
@@ -389,6 +423,218 @@ def handle_message_read(data):
     except Exception as e:
         print(f"❌ Read update failed: {e}")
 
+
+
+
+
+# @app.route('/get_forward_targets', methods=['GET'])
+# def get_forward_targets():
+#     try:
+#         current_user_id = ObjectId(request.user.id)  # Assuming you have user auth
+#         targets = []
+
+#         # 1. Get contacts (users except current user)
+#         contacts = db.users.find({ "_id": { "$ne": current_user_id } })
+#         for user in contacts:
+#             targets.append({
+#                 "id": f"user_{user['_id']}",
+#                 "name": user["username"],
+#                 "image": user.get("avatar", "/default-user.png")
+#             })
+
+#         # 2. Get groups where the user is a member
+#         groups = db.groups.find({ "members": current_user_id })
+#         for group in groups:
+#             targets.append({
+#                 "id": f"group_{group['_id']}",
+#                 "name": group["name"],
+#                 "image": group.get("avatar", "/default-group.png")
+#             })
+
+#         return jsonify(targets)
+
+#     except Exception as e:
+#         return jsonify({ "error": str(e) }), 500
+
+from flask import jsonify, request
+from bson import ObjectId
+from datetime import datetime
+
+# @app.route('/get_forward_targets', methods=['GET'])
+# def get_forward_targets():
+#     try:
+#         current_user_id = ObjectId(request.user.id)  # Authenticated user
+        
+#         # 1. Fetch groups where user is a member
+#         user = db.users.find_one({ "_id": current_user_id })
+#         user_groups = user.get("groups", [])  # Array of group ObjectIds
+        
+#         groups = db.groups.find({
+#             "_id": { "$in": user_groups }
+#         })
+
+#         # 2. Fetch other users (excluding self)
+#         users = db.users.find({
+#             "_id": { "$ne": current_user_id }
+#         })
+
+#         # Format response
+#         targets = []
+        
+#         # Add groups
+#         for group in groups:
+#             targets.append({
+#                 "type": "group",
+#                 "id": str(group["_id"]),
+#                 "name": group["name"],
+#                 "image": group.get("image", "/static/images/default-group.png"),
+#                 "timestamp": group.get("timestamp", "N/A")
+#             })
+        
+#         # Add users
+#         for user in users:
+#             targets.append({
+#                 "type": "user",
+#                 "id": str(user["_id"]),
+#                 "name": f"{user['firstname']} {user['lastname']}",
+#                 "image": f"/static/images/{user.get('image', 'default-user.png')}",
+#                 "meta": user.get("directorate", "No department")
+#             })
+
+#         return jsonify(targets)
+
+#     except Exception as e:
+#         return jsonify({ "error": str(e) }), 500
+    
+from flask import jsonify, request
+from bson import ObjectId
+from datetime import datetime
+from pymongo import MongoClient
+
+def get_db_connection():
+    MONGO_URI = "mongodb://localhost:27017/chatDatabase"
+    try:
+        mongo_client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+        # Test the connection
+        mongo_client.server_info()  # Will throw an exception if connection fails
+        return mongo_client["chatDatabase"]
+    except Exception as e:
+        print("❌ MongoDB connection error:", str(e))
+        raise
+
+@app.route('/get_forward_targets', methods=['GET'])
+def get_forward_targets():
+    try:
+        # 1. Verify authentication
+        if not hasattr(request, 'user') or not request.user.id:
+            return jsonify({"error": "Unauthorized"}), 401
+
+        # 2. Get database connection
+        db = get_db_connection()
+        
+        # 3. Get current user's data
+        current_user_id = ObjectId(request.user.id)
+        user = db.users.find_one({"_id": current_user_id})
+        
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        # 4. Prepare empty response
+        targets = []
+
+        # 5. Fetch groups (with error handling)
+        try:
+            user_groups = user.get("groups", [])
+            groups = list(db.groups.find({"_id": {"$in": user_groups}}))
+            
+            for group in groups:
+                targets.append({
+                    "type": "group",
+                    "id": str(group["_id"]),
+                    "name": group.get("name", "Unnamed Group"),
+                    "image": group.get("image", "/static/images/default-group.png"),
+                    "timestamp": group.get("timestamp", "N/A")
+                })
+        except Exception as group_err:
+            print("⚠️ Group fetch error:", str(group_err))
+
+        # 6. Fetch users (with error handling)
+        try:
+            users = list(db.users.find({
+                "_id": {"$ne": current_user_id},
+                "is_active": True  # Optional: only active users
+            }))
+            
+            for user in users:
+                targets.append({
+                    "type": "user",
+                    "id": str(user["_id"]),
+                    "name": f"{user.get('firstname', '')} {user.get('lastname', '')}".strip(),
+                    "image": f"/static/images/{user.get('image', 'default-user.png')}",
+                    "meta": user.get("directorate", "No department")
+                })
+        except Exception as user_err:
+            print("⚠️ User fetch error:", str(user_err))
+
+        # 7. Return results
+        return jsonify({
+            "success": True,
+            "targets": targets,
+            "count": len(targets)
+        })
+
+    except Exception as e:
+        print("❌ Endpoint error:", str(e))
+        return jsonify({
+            "error": "Server error",
+            "details": str(e)
+        }), 500
+
+from datetime import datetime
+
+@app.route('/forward_message', methods=['POST'])
+def forward_message():
+    try:
+        data = request.get_json()
+        message_id = ObjectId(data["message_id"])
+        targets = data["targets"]
+        content = data["content"]
+        message_type = data["type"]
+        media_url = data.get("media_url")
+        forwarded_by = ObjectId(request.user.id)
+
+        for target in targets:
+            target_type, target_id = target.split("_")
+            target_id = ObjectId(target_id)
+
+            new_msg = {
+                "user_id": forwarded_by,
+                "message": content,
+                "message_type": message_type,
+                "timestamp": datetime.utcnow(),
+                "is_forwarded": True,
+                "original_message_id": message_id,
+                "forwarded_by": forwarded_by,
+                "forward_timestamp": datetime.utcnow()
+            }
+
+            # Add media reference if exists
+            if media_url and message_type != "text":
+                new_msg[message_type + "_url"] = media_url
+
+            # Set target
+            if target_type == "group":
+                new_msg["group_id"] = target_id
+            else:
+                new_msg["private_chat_id"] = target_id
+
+            db.messages.insert_one(new_msg)
+
+        return jsonify({ "success": True })
+
+    except Exception as e:
+        return jsonify({ "error": str(e) }), 500
+
 # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 # ========================= DELETE CHAT ================================================================
@@ -421,6 +667,273 @@ def delete_chat(chat_id):
 
 # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
+# ================================= CONTACT ============================================================
+
+# @socketio.on("star_message")
+# def handle_star_message(data):
+#     db = get_db_connection()
+#     user_id = data.get("user_id")
+#     message_id = data.get("message_id")
+#     starred = data.get("starred", True)
+
+#     try:
+#         # Update the message in MongoDB
+#         update_op = {
+#             "$addToSet" if starred else "$pull": {
+#                 "starred_by": ObjectId(user_id)
+#             },
+#             "$set": {
+#                 "starred": starred,
+#                 "starred_at": datetime.utcnow() if starred else None
+#             }
+#         }
+
+#         result = db.messages.update_one(
+#             {"_id": ObjectId(message_id)},
+#             update_op
+#         )
+
+#         if result.modified_count == 0:
+#             print(f"❌ Message {message_id} not found for starring")
+#             return
+
+#         # Get the updated message
+#         updated_message = db.messages.find_one({"_id": ObjectId(message_id)})
+        
+#         # Emit to all clients in the chat room
+#         if updated_message.get("group_id"):
+#             room = str(updated_message["group_id"])
+#         elif updated_message.get("private_chat_id"):
+#             room = str(updated_message["private_chat_id"])
+#         else:
+#             print("❌ Message has no valid chat room")
+#             return
+
+#         socketio.emit("message_starred", {
+#             "message_id": message_id,
+#             "starred": starred,
+#             "user_id": user_id
+#         }, room=room)
+
+#     except Exception as e:
+#         print(f"❌ Error starring message: {e}")
+
+# -------------------------------------------------------------------------------------
+
+@socketio.on("star_message")
+def handle_star_message(data):
+    try:
+        db = get_db_connection()
+        user_id = data["user_id"]
+        message_id = data["message_id"]
+        starred = data.get("starred", True)
+
+        # Update the message in database
+        update_op = {
+            "$addToSet" if starred else "$pull": {
+                "starred_by": ObjectId(user_id)
+            },
+            "$set": {
+                "starred": starred,
+                "starred_at": datetime.utcnow() if starred else None
+            }
+        }
+
+        result = db.messages.update_one(
+            {"_id": ObjectId(message_id)},
+            update_op
+        )
+
+        if result.modified_count == 0:
+            return
+
+        # Get the updated message with full details
+        message = db.messages.find_one({"_id": ObjectId(message_id)})
+        if not message:
+            return
+
+        # Prepare the room ID (group or private chat)
+        room = str(message.get("group_id") or message.get("private_chat_id"))
+
+        # Emit to all clients in the chat room
+        emit("message_starred", {
+            "message_id": message_id,
+            "user_id": user_id,
+            "starred": starred,
+            "group_id": str(message["group_id"]) if message.get("group_id") else None,
+            "private_chat_id": str(message["private_chat_id"]) if message.get("private_chat_id") else None
+        }, room=room)
+
+    except Exception as e:
+        print(f"Error handling star message: {str(e)}")
+
+# -------------------------------------------------------------------------------------------------------------
+
+@app.route('/star', methods=['POST'])
+def star_message():
+    try:
+        data = request.get_json()
+        message_id = data['message_id']
+        starred = data['starred']
+        user_id = session.get('user_id')
+        
+        # Update in MongoDB
+        update_op = {
+            '$addToSet' if starred else '$pull': {
+                'starred_by': ObjectId(user_id)
+            },
+            '$set': {
+                'starred': starred,
+                'starred_at': datetime.utcnow() if starred else None
+            }
+        }
+        
+        result = db.messages.update_one(
+            {'_id': ObjectId(message_id)},
+            update_op
+        )
+        
+        if result.modified_count == 0:
+            return jsonify({'status': 'error', 'message': 'Message not found'}), 404
+            
+        return jsonify({'status': 'success', 'starred': starred})
+        
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/starred', methods=['GET'])
+def get_starred_messages():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 401
+    
+    # Get messages starred by current user
+    starred_messages = list(db.messages.aggregate([
+        {
+            '$match': {
+                'starred_by': ObjectId(user_id)
+            }
+        },
+        {
+            '$lookup': {
+                'from': 'users',
+                'localField': 'user_id',
+                'foreignField': '_id',
+                'as': 'sender'
+            }
+        },
+        {
+            '$unwind': '$sender'
+        },
+        {
+            '$sort': {'starred_at': -1}
+        },
+        {
+            '$project': {
+                '_id': 1,
+                'message': 1,
+                'message_type': 1,
+                'timestamp': 1,
+                'group_id': 1,
+                'private_chat_id': 1,
+                'sender_name': '$sender.username',
+                'is_own_message': {
+                    '$eq': ['$user_id', ObjectId(user_id)]
+                }
+            }
+        }
+    ]))
+    
+    # Convert ObjectId and datetime to strings
+    for msg in starred_messages:
+        msg['_id'] = str(msg['_id'])
+        msg['timestamp'] = msg['timestamp'].isoformat()
+        if msg.get('group_id'):
+            msg['group_id'] = str(msg['group_id'])
+        if msg.get('private_chat_id'):
+            msg['private_chat_id'] = str(msg['private_chat_id'])
+    
+    return jsonify({'messages': starred_messages})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+from bson.objectid import ObjectId
+
+@app.route("/groups")
+def groups():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    user_id = session["user_id"]
+    
+    db = get_db_connection()
+    all_chats = get_user_chats(user_id)
+
+    user = db.users.find_one({"_id": ObjectId(user_id)})
+    if not user or "groups" not in user:
+        user_groups = []
+    else:
+        user_groups = user["groups"]
+
+    # Avoid overwriting the function name `groups`
+    group_list = list(db.groups.find({"_id": {"$in": user_groups}}))
+
+    # Create a dictionary for easy lookup in the template
+    group_dict = {str(group["_id"]): group for group in group_list}
+
+    return render_template(
+        "groups.html",
+        group_list=group_list,
+        group_dict=group_dict,
+        chats=all_chats,
+        firstname=session.get("firstname"),
+        staffid=session.get("staffid"),
+        user_id=user_id
+    )
+
+
+
+
+
+
+
+
+
+
+
+
+# =========================== DOWNLOAD FILE ============================================================
+# @app.route("/download/<file_id>")
+# def download_file(file_id):
+#     try:
+#         # Fetch the file from GridFS
+#         file_data = fs.get(ObjectId(file_id))
+#         response = make_response(file_data.read())
+#         response.headers["Content-Disposition"] = f"attachment; filename={file_data.filename}"
+#         return response
+#     except NoFile:
+#         return "File not found", 404
+#     except PyMongoError as e:
+#         print(f"❌ Error fetching file: {e}")
+#         return "Internal server error", 500
 
 
 

@@ -95,8 +95,6 @@ def submit_register():
         if existing_user:
             return jsonify({"success": False, "message": "User with this Staff ID already exists"}), 400
 
-
-
         # Remove previous profile picture if exists
         existing_user_pic = db.users.find_one({"staffid": staffid}, {"image": 1})
         if existing_user_pic and "image" in existing_user_pic:

@@ -1,6 +1,6 @@
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import UserMixin
+# from flask_login import UserMixin
 import certifi
 from datetime import datetime
 import pytz
@@ -36,10 +36,47 @@ except Exception as e:
 # =============================================================================
 
 from pymongo import MongoClient
+from datetime import datetime
 
-# MongoDB connection string
-mongo_client = "mongodb://localhost:27017/chatDatabase"
-chat_db = client.get_database("chatDatabase")
+# MongoDB connection
+client = MongoClient("mongodb://localhost:27017/")
+chat_db = client["chatDatabase"]
+messages_collection = chat_db["messages"]
+
+# Update all messages that don't have the starred fields
+result = messages_collection.update_many(
+    {"starred": {"$exists": False}}, 
+    {
+        "$set": {
+            "starred": False,
+            "starred_by": [],
+            "starred_at": None
+        }
+    }
+)
+
+print(f"Updated {result.modified_count} messages with new starred fields.")
+# # =====================================================================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # collection = chat_db["security_questions"]
 
 # List of security questions
@@ -81,25 +118,25 @@ chat_db = client.get_database("chatDatabase")
 
 # ============================================================================
 
-users_collection = chat_db['users']
+# users_collection = chat_db['users']
 
 # Update all users that don't have security_question and security_answer fields
-result = users_collection.update_many(
-    {
-        "$or": [
-            {"security_question": {"$exists": False}},
-            {"security_answer": {"$exists": False}}
-        ]
-    },
-    {
-        "$set": {
-            "security_question": "",
-            "security_answer": ""
-        }
-    }
-)
+# result = users_collection.update_many(
+#     {
+#         "$or": [
+#             {"security_question": {"$exists": False}},
+#             {"security_answer": {"$exists": False}}
+#         ]
+#     },
+#     {
+#         "$set": {
+#             "security_question": "",
+#             "security_answer": ""
+#         }
+#     }
+# )
 
-print(f"Updated {result.modified_count} user(s) with empty security fields.")
+# print(f"Updated {result.modified_count} user(s) with empty security fields.")
 
 
 
@@ -118,17 +155,17 @@ print(f"Updated {result.modified_count} user(s) with empty security fields.")
 
 
 
-#     # Get the database
+# # Get the database
 # chat_db = client.get_database("chatDatabase")
 # messages_collection = chat_db["messages"]
 
 # # Add is_read field to all messages that don't have it
 # result = messages_collection.update_many(
-#     {"is_read": {"$exists": False}},  # Target only documents that lack this field
-#     {"$set": {"is_read": False}}
+#     {"reply_to_message_id": {"$exists": False}},  # Target only documents that lack this field
+#     {"$set": {"reply_to_message_id": False}}
 # )
 
-# print(f"Updated {result.modified_count} messages with is_read=False.")
+# print(f"Updated {result.modified_count} messages with reply_to_message_id=False.")
 
 
 

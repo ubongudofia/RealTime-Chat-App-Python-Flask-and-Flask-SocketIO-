@@ -1,3 +1,20 @@
+// Global references (at the top of your script)
+const chatElements = {
+    messagesContainer: document.getElementById("conversation-main"),
+    replyPreview: document.getElementById("replyPreview"),
+    replyContent: document.getElementById("replyContent"),
+    replyField: document.getElementById("reply_to_message_id"),
+    closeReplyBtn: document.getElementById("closeReply"),
+    messageInput: document.getElementById("messageInput")
+};
+
+// Global message store
+const messageStore = new Map();
+
+
+
+
+
 // ================================== CHAT SIDEBAR STRATS HERE (ASIDE) =================================
 // Setting up the chat sidebar toggle functionality
 
@@ -131,7 +148,7 @@ var privateChatId = "{{ private_chat_id }}" || null;
 window.activeChatId = groupId || privateChatId;
 window.activeChatType = groupId ? "group" : privateChatId ? "private" : null;
 
-const socket = io.connect("http://127.0.0.1:5005");
+const socket = io.connect("http://127.0.0.1:5005/");
 
 
 socket.on("connect", function () {
@@ -438,11 +455,6 @@ function loadChat(chatId, chatType) {
             let lastDate = null;
 
             data.messages.forEach(message => {
-
-                // Check if current user has starred this message
-                const sessionUserId = sessionStorage.getItem("user_id");
-                message.starred = message.starred_by && message.starred_by.includes(sessionUserId);
-
                 let messageDate = new Date(message.timestamp).toDateString(); // e.g., "Wed Mar 20 2025"
 
                 if (lastDate !== messageDate) {
@@ -461,22 +473,6 @@ function loadChat(chatId, chatType) {
             console.error("Error loading chat messages:", error);
             chatbox.innerHTML = "<p>Error loading messages.</p>";
         });
-
-        // Add listener for star updates
-    socket.on("message_starred", (data) => {
-        const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
-        if (messageElement) {
-            const isStarred = data.user_id === sessionStorage.getItem("user_id") ? data.starred : 
-                             messageElement.classList.contains("starred");
-            
-            messageElement.classList.toggle("starred", isStarred);
-            const starIcon = messageElement.querySelector(".starred-icon");
-            if (starIcon) {
-                starIcon.classList.toggle("ri-star-fill", isStarred);
-                starIcon.classList.toggle("ri-star-line", !isStarred);
-            }
-        }
-    });
 }
 
 
@@ -485,253 +481,243 @@ function loadChat(chatId, chatType) {
 // ======================================= DISPLAY MESSAGE FUNCTION STARTS HERE ======================================
 
 async function displayMessage(data, chatType) {
-    let messagesContainer = document.getElementById("conversation-main");
-
-    const messageStore = new Map();
-
-    if (!messagesContainer) {
-        console.error("❌ Chatbox not found!");
+    if (!chatElements.messagesContainer) {
+        console.error("Messages container not found");
         return;
     }
 
-    let sessionUserId = sessionStorage.getItem("user_id");
-    let isOutgoing = String(data.user_id) === String(sessionUserId);
+    const sessionUserId = sessionStorage.getItem("user_id");
+    const isOutgoing = String(data.user_id) === String(sessionUserId);
 
-    let messageWrapper = document.createElement("div");
+    // Create message wrapper
+    const messageWrapper = document.createElement("div");
     messageWrapper.classList.add("message-wrapper");
-    messageWrapper.id = `message-${data.id}`; // 👈 Important for scroll target
+    messageWrapper.id = `message-${data._id}`;
+    messageWrapper.dataset.messageId = data._id;
     messageWrapper.classList.add(isOutgoing ? "outgoing" : "incoming");
-    messageWrapper.dataset.messageId = data.id;
 
-    let senderName = (chatType === "group" && data.sender) ? `<strong>${data.sender}:</strong> ` : "";
-    let messageText = data.message_type === "text" ? data.message : "";
+    // Store message reference
+    messageStore.set(data._id, data);
 
-    let fileUrl = data.file_url || data.message;
-    let filePreview = "";
+    // Generate message content
+    const { senderName, messageText, filePreview } = generateMessageContent(data, chatType, isOutgoing);
+    const replyHtml = generateReplyHtml(data, sessionUserId);
+    const tickIcon = generateStatusIcon(data, isOutgoing, sessionUserId);
 
-    if (data.message_type === "image" || data.message_type === "file") {
-        if (fileUrl) {
-            let fullUrl = fileUrl.startsWith("http") ? fileUrl : window.location.origin + fileUrl;
-            filePreview = generateFilePreview(fullUrl, data.message_type);
-        } else {
-            console.warn("⚠️ No file URL found for preview!");
-        }
-    }
+    // Build message HTML
+    messageWrapper.innerHTML = buildMessageHtml({
+        data,
+        isOutgoing,
+        senderName,
+        messageText,
+        filePreview,
+        replyHtml,
+        tickIcon,
+        sessionUserId
+    });
 
-    if (!messageText && !filePreview) {
-        console.warn("⚠️ Empty message and no file preview! Skipping message display.");
-        return;
-    }
-
-    messageStore.set(data.id, data);
-
-    let replyHtml = '';
-    if (data.reply_to) {
-        const reply = data.reply_to;
-        const replySender = reply.sender || (reply.user_id === sessionUserId ? "You" : "Someone");
-        const replyType = reply.message_type;
-        const replyText = reply.message || "";
-        const fileExt = replyText.split('.').pop().toLowerCase();
-
-        let previewContent = '';
-        let fileUrl = replyText.startsWith("http") ? replyText : `${window.location.origin}${replyText}`;
-
-        // Get appropriate icon based on file type
-        let fileIcon = 'ri-file-line'; // Default file icon
-
-        if (replyType === "image" || ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(fileExt)) {
-            previewContent = `
-            <div class="reply-media-preview">
-                <i class="ri-image-line reply-icon"></i>
-                <img src="${fileUrl}" alt="Image" class="reply-preview-image">
-            </div>
-        `;
-        }
-        else if (replyType === "video" || ['mp4', 'webm', 'mov', 'avi'].includes(fileExt)) {
-            previewContent = `
-            <div class="reply-media-preview">
-                <i class="ri-video-line reply-icon"></i>
-                <span class="reply-type-label">Video</span>
-                <video class="reply-preview-video" src="${fileUrl}" muted playsinline></video>
-            </div>
-        `;
-        }
-        else if (replyType === "audio" || ['mp3', 'wav', 'ogg', 'aac'].includes(fileExt)) {
-            previewContent = `
-            <div class="reply-media-preview">
-                <i class="ri-music-2-line reply-icon"></i>
-                <span class="reply-type-label">Audio</span>
-                <audio class="reply-preview-audio" src="${fileUrl}" controls preload="metadata"></audio>
-            </div>
-        `;
-        }
-        else if (replyType === "file") {
-            let fileName = fileUrl.split("/").pop();
-
-            // Set specific icons for different file types
-            if (fileExt === 'pdf') {
-                fileIcon = 'ri-file-pdf-line';
-            } else if (['doc', 'docx'].includes(fileExt)) {
-                fileIcon = 'ri-file-word-line';
-            } else if (['xls', 'xlsx'].includes(fileExt)) {
-                fileIcon = 'ri-file-excel-line';
-            } else if (['ppt', 'pptx'].includes(fileExt)) {
-                fileIcon = 'ri-file-ppt-line';
-            } else if (['zip', 'rar', '7z'].includes(fileExt)) {
-                fileIcon = 'ri-file-zip-line';
-            }
-
-            previewContent = `
-            <div class="reply-file-preview">
-                <i class="${fileIcon} reply-icon"></i>
-                <span class="reply-file-name">${fileName}</span>
-            </div>
-        `;
-        }
-        else {
-            // Text fallback
-            let textPreview = replyText.length > 30 ? replyText.slice(0, 30) + "..." : replyText;
-            previewContent = `
-            <div class="reply-text-preview">
-                <i class="ri-chat-1-line reply-icon"></i>
-                <em>${textPreview}</em>
-            </div>
-        `;
-        }
-
-        replyHtml = `
-    <div class="replied-message" data-reply-id="${reply.message_id}">
-        <div class="reply-header">
-            <i class="ri-reply-line reply-arrow"></i>
-            <strong>${replySender}</strong>
-        </div>
-        ${previewContent}
-    </div>
-    `;
-    }
-
-    // Determine tick icon
-    let tickIcon = "";
-    if (isOutgoing) {
-        const readBy = data.read_by || [];
-        if (readBy.includes(sessionUserId)) {
-            tickIcon = '<i class="ri-check-double-line" style="color: red;"></i>';
-        } else if (data.status === "delivered") {
-            tickIcon = '<i class="ri-check-double-line"></i>';
-        } else {
-            tickIcon = '<i class="ri-check-line"></i>';
-        }
-    }
-
-
-    // Add star icon - this is the key addition
-    const starIcon = data.starred
-        ? '<i class="ri-star-fill starred-icon" onclick="toggleStarMessage(\'' + data.id + '\')"></i>'
-        : '<i class="ri-star-line starred-icon" onclick="toggleStarMessage(\'' + data.id + '\')"></i>';
-
-    messageWrapper.innerHTML = `
-    <div class="conversation-item ${isOutgoing ? 'outgoing' : 'incoming'} ${data.starred ? 'starred' : ''} ">
-        <!-- Dropdown for outgoing messages (left side) -->
-        ${isOutgoing ? `
-            <div class="conversation-item-dropdown">
-                <button type="button" class="conversation-item-dropdown-toggle">
-                    <i class="ri-more-2-line"></i>
-                </button>
-                <ul class="conversation-item-dropdown-list">
-                    <li><a href="#" class="dropdown-item reply-message" data-message-id="${data.id}">
-                        <i class="ri-reply-line"></i> Reply
-                    </a></li>
-                    <li><a href="#" class="dropdown-item copy-message" data-message-id="${data.id}">
-                        <i class="ri-file-copy-line"></i> Copy
-                    </a></li>
-                    <li><a href="#" class="dropdown-item forward-message" data-message-id="${data.id}">
-                        <i class="ri-share-forward-line"></i> Forward
-                    </a></li>
-                    <li><a href="#" class="dropdown-item star-message" data-message-id="${data.id}">
-                        <i class="ri-star-line"></i> Star
-                    </a></li>
-                    <li><a href="#" class="dropdown-item delete-message" data-message-id="${data.id}">
-                        <i class="ri-delete-bin-line"></i> Delete
-                    </a></li>
-                    <li><a href="#" class="dropdown-item select-message" data-message-id="${data.id}">
-                        <i class="ri-checkbox-line"></i> Select
-                    </a></li>
-                    <li><a href="#" class="dropdown-item share-message" data-message-id="${data.id}">
-                        <i class="ri-share-line"></i> Share
-                    </a></li>
-                </ul>
-            </div>
-        ` : ''}
-
-        <!-- Avatar for incoming messages -->
-        ${!isOutgoing ? `
-            <div class="conversation-item-side">
-                <img class="conversation-item-image" src="/profile_picture/${data.user_id}" alt="">
-            </div>
-        ` : ''}
-
-        <!-- Message content -->
-        <div class="conversation-item-content">
-            <div class="conversation-item-wrapper">
-                <div class="conversation-item-box ${isOutgoing ? 'outgoing-bubble' : 'incoming-bubble'}">
-                    <div class="conversation-item-text">
-                    ${replyHtml}
-                        <p class="message-text">${senderName}<br>${messageText}</p>
-                        ${filePreview}
-                        <div class="timestamp conversation-item-time">
-                            ${formatTimestamp(data.timestamp)}
-                            ${tickIcon}
-                            ${starIcon} 
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Avatar for outgoing messages -->
-        ${isOutgoing ? `
-            <div class="conversation-item-side">
-                <img class="conversation-item-image" src="/profile_picture/${sessionUserId}" alt="">
-            </div>
-        ` : ''}
-
-        <!-- Dropdown for incoming messages (right side) -->
-        ${!isOutgoing ? `
-            <div class="conversation-item-dropdown">
-                <button type="button" class="conversation-item-dropdown-toggle">
-                    <i class="ri-more-2-line"></i>
-                </button>
-                <ul class="conversation-item-dropdown-list">
-                    <li><a href="#" class="dropdown-item reply-message" data-message-id="${data.id}">
-                        <i class="ri-reply-line"></i> Reply
-                    </a></li>
-                    <li><a href="#" class="dropdown-item copy-message" data-message-id="${data.id}">
-                        <i class="ri-file-copy-line"></i> Copy
-                    </a></li>
-                    <li><a href="#" class="dropdown-item forward-message" data-message-id="${data.id}">
-                        <i class="ri-share-forward-line"></i> Forward
-                    </a></li>
-                    <li><a href="#" class="dropdown-item star-message" data-message-id="${data.id}">
-                        <i class="ri-star-line"></i> Star
-                    </a></li>
-                    <li><a href="#" class="dropdown-item delete-message" data-message-id="${data.id}">
-                        <i class="ri-delete-bin-line"></i> Delete
-                    </a></li>
-                    <li><a href="#" class="dropdown-item select-message" data-message-id="${data.id}">
-                        <i class="ri-checkbox-line"></i> Select
-                    </a></li>
-                    <li><a href="#" class="dropdown-item share-message" data-message-id="${data.id}">
-                        <i class="ri-share-line"></i> Share
-                    </a></li>
-                </ul>
-            </div>
-        ` : ''}
-    </div>
-`;
-
-    messagesContainer.appendChild(messageWrapper);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    // Append to container and scroll
+    chatElements.messagesContainer.appendChild(messageWrapper);
+    chatElements.messagesContainer.scrollTop = chatElements.messagesContainer.scrollHeight;
 }
+
+
+// async function displayMessage(data, chatType) {
+//     let messagesContainer = document.getElementById("conversation-main");
+
+//     const messageStore = new Map();
+
+
+//     if (!messagesContainer) {
+//         console.error("❌ Chatbox not found!");
+//         return;
+//     }
+
+//     let sessionUserId = sessionStorage.getItem("user_id");
+//     let isOutgoing = String(data.user_id) === String(sessionUserId);
+
+//     let messageWrapper = document.createElement("div");
+//     messageWrapper.classList.add("message-wrapper");
+//     messageWrapper.id = `message-${data.id}`; // 👈 Important for scroll target
+//     messageWrapper.classList.add(isOutgoing ? "outgoing" : "incoming");
+//     messageWrapper.dataset.messageId = data.id;
+
+//     let senderName = (chatType === "group" && data.sender) ? `<strong>${data.sender}:</strong> ` : "";
+//     let messageText = data.message_type === "text" ? data.message : "";
+
+//     let fileUrl = data.file_url || data.message;
+//     let filePreview = "";
+
+//     if (data.message_type === "image" || data.message_type === "file") {
+//         if (fileUrl) {
+//             let fullUrl = fileUrl.startsWith("http") ? fileUrl : window.location.origin + fileUrl;
+//             filePreview = generateFilePreview(fullUrl, data.message_type);
+//         } else {
+//             console.warn("⚠️ No file URL found for preview!");
+//         }
+//     }
+
+//     if (!messageText && !filePreview) {
+//         console.warn("⚠️ Empty message and no file preview! Skipping message display.");
+//         return;
+//     }
+
+//     messageStore.set(data.id, data);
+
+
+//     let replyHtml = '';
+//     if (data.reply_to) {
+//         const reply = data.reply_to;
+//         const replySender = reply.sender || (reply.user_id === sessionUserId ? "You" : "Someone");
+//         const replyType = reply.message_type;
+//         const replyText = reply.message || "";
+
+//         let previewContent = '';
+//         let fileUrl = replyText.startsWith("http") ? replyText : `${window.location.origin}${replyText}`;
+
+//         if (replyType === "image") {
+//             previewContent = `<img src="${fileUrl}" alt="Image" class="reply-preview-image">`;
+//         } else if (replyType === "file") {
+//             let fileName = fileUrl.split("/").pop();
+//             previewContent = `<div class="reply-file-preview"><i class="ri-file-line"></i> ${fileName}</div>`;
+//         } else if (replyType === "video") {
+//             previewContent = `<video class="reply-preview-video" src="${fileUrl}" muted playsinline></video>`;
+//         } else if (replyType === "audio") {
+//             previewContent = `<audio class="reply-preview-audio" src="${fileUrl}" controls preload="metadata"></audio>`;
+//         } else {
+//             // Text fallback
+//             let textPreview = replyText.length > 30 ? replyText.slice(0, 30) + "..." : replyText;
+//             previewContent = `<em>${textPreview}</em>`;
+//         }
+
+//         replyHtml = `
+//         <div class="replied-message" data-reply-id="${reply.message_id}">
+//             <strong>${replySender}</strong><br>
+//             ${previewContent}
+//         </div>
+//     `;
+//     }
+
+
+
+
+
+
+//     // Determine tick icon
+//     let tickIcon = "";
+//     if (isOutgoing) {
+//         const readBy = data.read_by || [];
+//         if (readBy.includes(sessionUserId)) {
+//             tickIcon = '<i class="ri-check-double-line" style="color: red;"></i>';
+//         } else if (data.status === "delivered") {
+//             tickIcon = '<i class="ri-check-double-line"></i>';
+//         } else {
+//             tickIcon = '<i class="ri-check-line"></i>';
+//         }
+//     }
+
+//     messageWrapper.innerHTML = `
+//     <div class="conversation-item ${isOutgoing ? 'outgoing' : 'incoming'}">
+//         <!-- Dropdown for outgoing messages (left side) -->
+//         ${isOutgoing ? `
+//             <div class="conversation-item-dropdown">
+//                 <button type="button" class="conversation-item-dropdown-toggle">
+//                     <i class="ri-more-2-line"></i>
+//                 </button>
+//                 <ul class="conversation-item-dropdown-list">
+//                     <li><a href="#" class="dropdown-item reply-message" data-message-id="${data.id}">
+//                         <i class="ri-reply-line"></i> Reply
+//                     </a></li>
+//                     <li><a href="#" class="dropdown-item copy-message" data-message-id="${data.id}">
+//                         <i class="ri-file-copy-line"></i> Copy
+//                     </a></li>
+//                     <li><a href="#" class="dropdown-item forward-message" data-message-id="${data.id}">
+//                         <i class="ri-share-forward-line"></i> Forward
+//                     </a></li>
+//                     <li><a href="#" class="dropdown-item star-message" data-message-id="${data.id}">
+//                         <i class="ri-star-line"></i> Star
+//                     </a></li>
+//                     <li><a href="#" class="dropdown-item delete-message" data-message-id="${data.id}">
+//                         <i class="ri-delete-bin-line"></i> Delete
+//                     </a></li>
+//                     <li><a href="#" class="dropdown-item select-message" data-message-id="${data.id}">
+//                         <i class="ri-checkbox-line"></i> Select
+//                     </a></li>
+//                     <li><a href="#" class="dropdown-item share-message" data-message-id="${data.id}">
+//                         <i class="ri-share-line"></i> Share
+//                     </a></li>
+//                 </ul>
+//             </div>
+//         ` : ''}
+
+//         <!-- Avatar for incoming messages -->
+//         ${!isOutgoing ? `
+//             <div class="conversation-item-side">
+//                 <img class="conversation-item-image" src="/profile_picture/${data.user_id}" alt="">
+//             </div>
+//         ` : ''}
+
+//         <!-- Message content -->
+//         <div class="conversation-item-content">
+//             <div class="conversation-item-wrapper">
+//                 <div class="conversation-item-box ${isOutgoing ? 'outgoing-bubble' : 'incoming-bubble'}">
+//                     <div class="conversation-item-text">
+//                     ${replyHtml}
+//                         <p class="message-text">${senderName}<br>${messageText}</p>
+//                         ${filePreview}
+//                         <div class="timestamp conversation-item-time">
+//                             ${formatTimestamp(data.timestamp)}
+//                             ${tickIcon}    
+//                         </div>
+//                     </div>
+//                 </div>
+//             </div>
+//         </div>
+
+//         <!-- Avatar for outgoing messages -->
+//         ${isOutgoing ? `
+//             <div class="conversation-item-side">
+//                 <img class="conversation-item-image" src="/profile_picture/${sessionUserId}" alt="">
+//             </div>
+//         ` : ''}
+
+//         <!-- Dropdown for incoming messages (right side) -->
+//         ${!isOutgoing ? `
+//             <div class="conversation-item-dropdown">
+//                 <button type="button" class="conversation-item-dropdown-toggle">
+//                     <i class="ri-more-2-line"></i>
+//                 </button>
+//                 <ul class="conversation-item-dropdown-list">
+//                     <li><a href="#" class="dropdown-item reply-message" data-message-id="${data.id}">
+//                         <i class="ri-reply-line"></i> Reply
+//                     </a></li>
+//                     <li><a href="#" class="dropdown-item copy-message" data-message-id="${data.id}">
+//                         <i class="ri-file-copy-line"></i> Copy
+//                     </a></li>
+//                     <li><a href="#" class="dropdown-item forward-message" data-message-id="${data.id}">
+//                         <i class="ri-share-forward-line"></i> Forward
+//                     </a></li>
+//                     <li><a href="#" class="dropdown-item star-message" data-message-id="${data.id}">
+//                         <i class="ri-star-line"></i> Star
+//                     </a></li>
+//                     <li><a href="#" class="dropdown-item delete-message" data-message-id="${data.id}">
+//                         <i class="ri-delete-bin-line"></i> Delete
+//                     </a></li>
+//                     <li><a href="#" class="dropdown-item select-message" data-message-id="${data.id}">
+//                         <i class="ri-checkbox-line"></i> Select
+//                     </a></li>
+//                     <li><a href="#" class="dropdown-item share-message" data-message-id="${data.id}">
+//                         <i class="ri-share-line"></i> Share
+//                     </a></li>
+//                 </ul>
+//             </div>
+//         ` : ''}
+//     </div>
+// `;
+
+//     messagesContainer.appendChild(messageWrapper);
+//     messagesContainer.scrollTop = messagesContainer.scrollHeight;
+// }
 
 
 // -----------------------------FUNCTION TO SCROLL TO REPLY MESSAGE----------------------------
@@ -759,6 +745,167 @@ document.addEventListener("click", function (e) {
     }
 });
 
+// helper function
+function generateReplyHtml(data, sessionUserId) {
+    if (!data.reply_to) return "";
+
+    const reply = data.reply_to;
+    const replySender = reply.user_id === sessionUserId ? "You" : reply.sender || "Someone";
+    
+    let previewContent;
+    if (reply.message_type === "text") {
+        previewContent = `<em>${truncate(reply.message, 30)}</em>`;
+    } else {
+        const fileUrl = reply.message.startsWith("http") ? reply.message : `${window.location.origin}${reply.message}`;
+        previewContent = generateFilePreview(fileUrl, reply.message_type, true);
+    }
+
+    return `
+        <div class="replied-message" data-reply-id="${reply.message_id}" 
+             onclick="scrollToMessage('${reply.message_id}')">
+            <strong>${replySender}</strong><br>
+            ${previewContent}
+        </div>
+    `;
+}
+
+function truncate(text, length) {
+    return text.length > length ? `${text.substring(0, length)}...` : text;
+}
+
+function showToast(message) {
+    const toast = document.createElement("div");
+    toast.className = "toast-notification";
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.classList.add("fade-out");
+        setTimeout(() => toast.remove(), 300);
+    }, 2000);
+}
+
+
+// Helper function to generate message content components
+function generateMessageContent(data, chatType, isOutgoing) {
+    const senderName = (chatType === "group" && data.sender && !isOutgoing) 
+        ? `<strong>${data.sender}:</strong> ` 
+        : "";
+
+    const messageText = data.message_type === "text" ? data.message : "";
+    
+    let filePreview = "";
+    if (["image", "file", "video", "audio"].includes(data.message_type)) {
+        const fileUrl = data.file_url || data.message;
+        if (fileUrl) {
+            const fullUrl = fileUrl.startsWith("http") ? fileUrl : window.location.origin + fileUrl;
+            filePreview = generateFilePreview(fullUrl, data.message_type);
+        }
+    }
+
+    return { senderName, messageText, filePreview };
+}
+
+// Helper function to generate file previews
+function generateFilePreview(url, type, isPreview = false) {
+    const className = isPreview ? `${type}-preview` : type;
+    
+    switch(type) {
+        case "image":
+            return `<img src="${url}" class="${className}" alt="Image">`;
+        case "video":
+            return `<video src="${url}" class="${className}" controls playsinline></video>`;
+        case "audio":
+            return `<audio src="${url}" class="${className}" controls></audio>`;
+        case "file":
+            const fileName = url.split("/").pop();
+            return `
+                <div class="${className}">
+                    <i class="ri-file-line"></i>
+                    <span>${fileName}</span>
+                </div>
+            `;
+        default:
+            return "";
+    }
+}
+
+// Helper function to generate status icons
+function generateStatusIcon(data, isOutgoing, sessionUserId) {
+    if (!isOutgoing) return "";
+
+    const readBy = data.read_by || [];
+    if (readBy.includes(sessionUserId)) {
+        return '<i class="ri-check-double-line" style="color: red;"></i>';
+    } else if (data.status === "delivered") {
+        return '<i class="ri-check-double-line"></i>';
+    }
+    return '<i class="ri-check-line"></i>';
+}
+
+// Helper function to build message HTML
+function buildMessageHtml(params) {
+    return `
+        <div class="conversation-item ${params.isOutgoing ? 'outgoing' : 'incoming'}">
+            ${params.isOutgoing ? buildDropdownHtml(params.data.id) : buildAvatarHtml(params.data.user_id)}
+            
+            <div class="conversation-item-content">
+                <div class="conversation-item-wrapper">
+                    <div class="conversation-item-box ${params.isOutgoing ? 'outgoing-bubble' : 'incoming-bubble'}">
+                        <div class="conversation-item-text">
+                            ${params.replyHtml}
+                            <p class="message-text">${params.senderName}${params.messageText}</p>
+                            ${params.filePreview}
+                            <div class="timestamp conversation-item-time">
+                                ${formatTimestamp(params.data.timestamp)}
+                                ${params.tickIcon}    
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            ${params.isOutgoing ? buildAvatarHtml(params.sessionUserId) : buildDropdownHtml(params.data.id)}
+        </div>
+    `;
+}
+
+// Helper function to build dropdown HTML
+function buildDropdownHtml(messageId) {
+    return `
+        <div class="conversation-item-dropdown">
+            <button type="button" class="conversation-item-dropdown-toggle">
+                <i class="ri-more-2-line"></i>
+            </button>
+            <ul class="conversation-item-dropdown-list">
+                <li><a href="#" class="dropdown-item reply-message" data-message-id="${messageId}">
+                    <i class="ri-reply-line"></i> Reply
+                </a></li>
+                <li><a href="#" class="dropdown-item copy-message" data-message-id="${messageId}">
+                    <i class="ri-file-copy-line"></i> Copy
+                </a></li>
+                <li><a href="#" class="dropdown-item forward-message" data-message-id="${messageId}">
+                    <i class="ri-share-forward-line"></i> Forward
+                </a></li>
+                <li><a href="#" class="dropdown-item star-message" data-message-id="${messageId}">
+                    <i class="ri-star-line"></i> Star
+                </a></li>
+                <li><a href="#" class="dropdown-item delete-message" data-message-id="${messageId}">
+                    <i class="ri-delete-bin-line"></i> Delete
+                </a></li>
+            </ul>
+        </div>
+    `;
+}
+
+// Helper function to build avatar HTML
+function buildAvatarHtml(userId) {
+    return `
+        <div class="conversation-item-side">
+            <img class="conversation-item-image" src="/profile_picture/${userId}" alt="">
+        </div>
+    `;
+}
 
 
 // ======================================== DISPLAY MESSAGE FUNCTION ENDS HERE ==============================================
@@ -817,7 +964,6 @@ function searchUser() {
 // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 // ================================== SEND MESSAGE FUNCTION STARTS HERE =============================================
 
-
 document.addEventListener("DOMContentLoaded", function () {
     const sendButton = document.getElementById("sendButton");
     const messageInput = document.getElementById("messageInput");
@@ -835,10 +981,6 @@ document.addEventListener("DOMContentLoaded", function () {
     async function sendMessage() {
         const file = fileInput.files[0];
         const message = messageInput.value.trim();
-
-        console.log("▶️ sendMessage called, message:", message, "file:", file);
-
-
         const replyToMessageId = document.getElementById("reply_to_message_id")?.value;
 
         if (!message && !file) {
@@ -898,26 +1040,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
         messageInput.value = "";
         fileInput.value = "";
-
-
         if (document.getElementById("filePreview")) {
             document.getElementById("filePreview").remove();
         }
 
         // ✅ Clear reply preview and reset reply_to_message_id
         const replyPreview = document.getElementById("replyPreview");
-        const replyContent = document.getElementById("replyContent");
-        const replyToInput = document.getElementById("reply_to_message_id");
-
         if (replyPreview) {
-            replyPreview.style.display = "none";
-
+            replyPreview.remove();
         }
 
-        if (replyContent) {
-            replyContent.textContent = '';
-        }
-
+        const replyToInput = document.getElementById("reply_to_message_id");
         if (replyToInput) {
             replyToInput.value = "";
         }
@@ -939,20 +1072,9 @@ socket.on("receive_message", async (data) => {
     console.log("📩 New message received:", data);
     console.log("Sender Name:", data.sender);
 
-    // Ensure starred fields exist (backward compatibility)
-    data.starred = data.starred || false;
-    data.starred_by = data.starred_by || [];
-    data.starred_at = data.starred_at || null;
-
     const isGroup = !!data.group_id;
     const chatId = isGroup ? data.group_id : data.private_chat_id;
     const chatType = isGroup ? "group" : "private";
-    const sessionUserId = sessionStorage.getItem("user_id");
-
-    // Check if current user starred this message
-    if (sessionUserId) {
-        data.starred = data.starred_by.includes(sessionUserId);
-    }
 
     // Check if the message belongs to the active chat
     if (
@@ -977,502 +1099,44 @@ socket.on("receive_message", async (data) => {
 
     // Always move the chat to the top
     moveChatToTop(chatId, chatType);
-    updateChatPreview(chatId, chatType, data.message, data.timestamp, data.starred);
+    updateChatPreview(chatId, chatType, data.message, data.timestamp);
 
-});
-
-
-// Handle star updates (separate handler, not nested)
-socket.on("message_starred", (data) => {
-    console.log("⭐ Star update received:", data);
-
-    const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
-    if (!messageElement) return;
-
-    const sessionUserId = sessionStorage.getItem("user_id");
-    const isOurStar = data.user_id === sessionUserId;
-
-    // Update UI only if:
-    // - It's our own star action, or
-    // - The message is in the current chat view
-    if (isOurStar || messageElement.closest("#conversation-main")) {
-        const isStarred = isOurStar ? data.starred : messageElement.classList.contains("starred");
-        
-        messageElement.classList.toggle("starred", isStarred);
-        const starIcon = messageElement.querySelector(".starred-icon");
-        if (starIcon) {
-            starIcon.classList.toggle("ri-star-fill", isStarred);
-            starIcon.classList.toggle("ri-star-line", !isStarred);
-        }
-    }
-
-    // Update chat preview if this chat is in the sidebar
-    if (data.group_id || data.private_chat_id) {
-        const chatId = data.group_id || data.private_chat_id;
-        const chatType = data.group_id ? "group" : "private";
-        updateChatStarIndicator(chatId, data.message_id, data.starred);
-    }
 });
 
 // ========================================= SEND MESSAGES FUNCTION ENDS HERE ===========================================
 // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 // ================================= FILE PREVIEW FUNCTION STARTS HERE ==================================================
 
-document.getElementById("attachFileIcon").addEventListener("click", function () {
-    document.getElementById("fileInput").click();
-});
-
-// Show preview when a file is selected
-const fileInput = document.getElementById("fileInput");
-fileInput.addEventListener("change", function () {
-    let file = fileInput.files[0];
-    if (file) {
-        showPreviewFile(file);
-    }
-});
-
-function showPreviewFile(file) {
-    let previewContainer = document.getElementById("filePreview");
-    if (!previewContainer) {
-        previewContainer = document.createElement("div");
-        previewContainer.id = "filePreview";
-        previewContainer.style.marginBottom = "10px";
-        previewContainer.style.position = "relative"; // Needed for absolute positioning of close button
-        document.getElementById("chatInput").insertAdjacentElement("beforebegin", previewContainer);
+function generateFilePreview(fileUrl, fileType) {
+    if (!fileUrl) {
+        console.error("❌ Missing fileUrl!");
+        return "";
     }
 
-    let fileExt = file.name.split(".").pop().toLowerCase();
-    let reader = new FileReader();
+    // Ensure the fileUrl is correctly formatted
+    fileUrl = fileUrl.replace(/\/{2,}/g, "/").replace(":/", "://");
 
-    // Create close button once
-    const closeBtn = createCloseButton();
+    let fileName = fileUrl.split("/").pop(); // Extract file name from URL
+    let previewHtml = ""; // Declare previewHtml
 
-    // Image
-    if (["png", "jpg", "jpeg", "gif"].includes(fileExt)) {
-        reader.onload = function (e) {
-            previewContainer.innerHTML = `
-                <div style="padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 5px; background: #f9f9f9; border-radius: 5px;">
-                    <img src="${e.target.result}" alt="${file.name}" style="max-width: 200px; border-radius: 5px;" />
-                    <p>${file.name}</p>
-                </div>
-            `;
-            previewContainer.appendChild(closeBtn);
-        };
-        reader.readAsDataURL(file);
+    if (fileType === "image") {
+        previewHtml = `
+        <div class="chat-file-preview">
+            <a href="${fileUrl}" target="_blank">
+                <img src="${fileUrl}" class="chat-image-preview" alt="Uploaded Image">
+            </a>
+            <p class="file-name" style="width: 100px; font-size: 12px; color: white; margin-top: 5px;">📂 ${fileName}</p>
+        </div>`;
+    } else {
+        previewHtml = `
+        <div class="chat-file-preview">
+            <a href="${fileUrl}" target="_blank" class="chat-file-link" download="${fileName}">📄 Download</a>
+            <p class="file-name" style="font-size: 12px; color: white; margin-top: 5px;">📂 ${fileName}</p>
+        </div>`;
     }
-    // Video
-    else if (["mp4", "webm", "ogg"].includes(fileExt)) {
-        const videoUrl = URL.createObjectURL(file);
-        previewContainer.innerHTML = `
-            <div style="padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 5px; background: #f9f9f9; border-radius: 5px;">
-                <video width="200" controls muted>
-                    <source src="${videoUrl}" type="video/${fileExt}">
-                    Your browser does not support the video tag.
-                </video>
-                <p>${file.name}</p>
-            </div>
-        `;
-        previewContainer.appendChild(closeBtn);
-    }
-    // Audio
-    else if (["mp3", "wav", "ogg", "aac"].includes(fileExt)) {
-        const audioUrl = URL.createObjectURL(file);
-        previewContainer.innerHTML = `
-            <div style="padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 5px; background: #f9f9f9; border-radius: 5px;">
-                <audio controls>
-                    <source src="${audioUrl}" type="audio/${fileExt}">
-                    Your browser does not support the audio element.
-                </audio>
-                <p>${file.name}</p>
-            </div>
-        `;
-        previewContainer.appendChild(closeBtn);
-    }
-    else if (fileExt === "pdf") {
-        const pdfUrl = URL.createObjectURL(file);
-        previewContainer.innerHTML = `
-            <div style="padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; background: #f9f9f9; border-radius: 5px;">
-                <embed src="${pdfUrl}" type="application/pdf" width="200" height="200" />
-                <p>${file.name}</p>
-            </div>
-        `;
-        previewContainer.appendChild(closeBtn);
-    }
-    // Office Documents (enhanced preview)
-    else if (["docx", "doc", "xlsx", "xls", "pptx", "ppt"].includes(fileExt)) {
-        const fileUrl = URL.createObjectURL(file);
-        const iconClass = {
-            'doc': 'ri-file-word-line',
-            'docx': 'ri-file-word-line',
-            'xls': 'ri-file-excel-line',
-            'xlsx': 'ri-file-excel-line',
-            'ppt': 'ri-file-ppt-line',
-            'pptx': 'ri-file-ppt-line'
-        }[fileExt];
+    console.log("📸 File preview:", previewHtml); // ✅ Corrected log
 
-        const typeName = {
-            'doc': 'Word',
-            'docx': 'Word',
-            'xls': 'Excel',
-            'xlsx': 'Excel',
-            'ppt': 'PowerPoint',
-            'pptx': 'PowerPoint'
-        }[fileExt];
-
-        previewContainer.innerHTML = `
-            <div style="padding: 20px; background: #f9f9f9; border-radius: 5px; text-align: center;">
-                <div style="font-size: 48px; color: ${fileExt.includes('doc') ? '#2b579a' :
-                fileExt.includes('xls') ? '#217346' :
-                    '#d24726'
-            };">
-                    <i class="${iconClass}"></i>
-                </div>
-                <p style="margin: 10px 0; font-weight: bold;">${typeName} Document</p>
-                <p style="word-break: break-all;">${file.name}</p>
-                <div style="margin-top: 15px;">
-                    <a href="${fileUrl}" download="${file.name}">
-                        
-                    </a>
-                </div>
-            </div>
-        `;
-        previewContainer.appendChild(closeBtn);
-    }
-    else {
-        previewContainer.innerHTML = `
-            <div style="padding: 10px; background: #f9f9f9; border-radius: 5px; display: flex; align-items: center; justify-content: space-between;">
-                <p>📄 ${file.name}</p>
-            </div>
-        `;
-        previewContainer.appendChild(closeBtn);
-    }
-}
-
-// Helper function to create close button
-function createCloseButton() {
-    const closeBtn = document.createElement("button");
-    closeBtn.textContent = "❌";
-    closeBtn.onclick = removePreview;
-    closeBtn.style.cssText = `
-        position: absolute;
-        top: 5px;
-        right: 5px;
-        background: red;
-        color: white;
-        border: none;
-        padding: 5px 8px;
-        font-size: 12px;
-        border-radius: 4px;
-        cursor: pointer;
-        z-index: 10;
-    `;
-    return closeBtn;
-}
-
-// Function to remove file preview
-function removePreview() {
-    let previewContainer = document.getElementById("filePreview");
-    if (previewContainer) {
-        previewContainer.remove();
-    }
-    fileInput.value = ""; // Reset file input
-}
-
-
-// ----------------- SEND MULTIPLE FILES START --------------------------------
-// const previewWrapper = document.getElementById("previewWrapper");
-// fileInput.addEventListener("change", function () {
-//     const files = Array.from(fileInput.files);
-//     files.forEach(showFilePreview);
-// });
-
-// function showFilePreview(file) {
-//     const fileExt = file.name.split(".").pop().toLowerCase();
-//     const previewBox = document.createElement("div");
-
-//     previewBox.className = "file-preview";
-//     previewBox.style = `
-//         position: relative;
-//         margin-bottom: 10px;
-//         padding: 15px;
-//         background-color: #f0f0f0;
-//         border-radius: 8px;
-//         display: flex;
-//         flex-direction: column;
-//         align-items: center;
-//         gap: 8px;
-//     `;
-
-//     const closeBtn = document.createElement("button");
-//     closeBtn.textContent = "❌";
-//     closeBtn.onclick = () => previewBox.remove();
-//     closeBtn.style = `
-//         position: absolute;
-//         top: 5px;
-//         right: 5px;
-//         background: red;
-//         color: white;
-//         border: none;
-//         padding: 5px 8px;
-//         font-size: 12px;
-//         border-radius: 4px;
-//         cursor: pointer;
-//     `;
-
-//     const reader = new FileReader();
-
-//     if (["png", "jpg", "jpeg", "gif"].includes(fileExt)) {
-//         reader.onload = (e) => {
-//             previewBox.innerHTML += `
-//                 <img src="${e.target.result}" alt="${file.name}" style="max-width: 200px; border-radius: 6px;" />
-//                 <p>${file.name}</p>
-//             `;
-//             previewBox.appendChild(closeBtn);
-//         };
-//         reader.readAsDataURL(file);
-//     }
-//     else if (["mp4", "webm", "ogg"].includes(fileExt)) {
-//         const videoUrl = URL.createObjectURL(file);
-//         previewBox.innerHTML += `
-//             <video width="200" controls muted>
-//                 <source src="${videoUrl}" type="video/${fileExt}">
-//                 Your browser does not support the video tag.
-//             </video>
-//             <p>${file.name}</p>
-//         `;
-//         previewBox.appendChild(closeBtn);
-//     }
-//     else if (["mp3", "wav", "ogg", "aac"].includes(fileExt)) {
-//         const audioUrl = URL.createObjectURL(file);
-//         previewBox.innerHTML += `
-//             <audio controls>
-//                 <source src="${audioUrl}" type="audio/${fileExt}">
-//                 Your browser does not support the audio element.
-//             </audio>
-//             <p>${file.name}</p>
-//         `;
-//         previewBox.appendChild(closeBtn);
-//     }
-//     else if (fileExt === "pdf") {
-//         const pdfUrl = URL.createObjectURL(file);
-//         previewBox.innerHTML += `
-//             <embed src="${pdfUrl}" type="application/pdf" width="200" height="200" />
-//             <p>${file.name}</p>
-//         `;
-//         previewBox.appendChild(closeBtn);
-//     }
-//     else {
-//         previewBox.innerHTML += `<p>📄 ${file.name}</p>`;
-//         previewBox.appendChild(closeBtn);
-//     }
-
-//     previewWrapper.appendChild(previewBox);
-// }
-
-// function removePreview() {
-//     const previewContainer = document.getElementById("filePreview");
-//     if (previewContainer) previewContainer.remove();
-//     fileInput.value = ""; // reset file input
-// }
-
-// // ----------------- SEND MULTIPLE FILES END ----------------------------------
-
-
-// ---------------------------------- Function to generate file preview ---------------------------------------------------------------------------
-
-function generateFilePreview(fileUrl, messageType, fileName = '') {
-    // Extract file extension and name
-    const fileExt = fileName
-        ? fileName.split('.').pop().toLowerCase()
-        : fileUrl.split('.').pop().toLowerCase().split('?')[0];
-    const displayName = fileName || fileUrl.split('/').pop().split('?')[0];
-
-    // Image preview
-    if (messageType === 'image' || ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(fileExt)) {
-        return generateImagePreview(fileUrl, displayName);
-    }
-
-    // Video preview
-    if (messageType === 'video' || ['mp4', 'webm', 'ogg', 'mov'].includes(fileExt)) {
-        return generateVideoPreview(fileUrl, fileExt, displayName);
-    }
-
-    // Audio preview
-    if (messageType === 'audio' || ['mp3', 'wav', 'ogg', 'aac', 'm4a'].includes(fileExt)) {
-        return generateAudioPreview(fileUrl, fileExt, displayName);
-    }
-
-    // Document previews (enhanced)
-    if (['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(fileExt)) {
-        return generateDocumentPreview(fileUrl, fileExt, displayName);
-    }
-
-    // Generic file preview
-    return generateGenericPreview(fileUrl, displayName);
-}
-
-// Helper functions for each preview type
-
-function generateImagePreview(url, name) {
-    return `
-        <div class="file-preview image-preview">
-            <div class="image-container" onclick="openImageModal('${url}', '${name}')">
-                <img src="${url}" alt="${name}" loading="lazy" class="preview-image">
-            </div>
-            <div class="file-info-img">
-                <span class="file-name-img">${name}</span>
-                <a href="${url}" download="${name}" class="download-btn-img">
-                    <i class="ri-file-download-line"></i>
-                </a>
-            </div>
-        </div>
-    `;
-}
-
-function openImageModal(imageUrl, imageName) {
-    // Create modal structure
-    const modalHtml = `
-        <div class="image-modal" onclick="closeImageModal()">
-            <div class="modal-content-container">
-                <div class="modal-content">
-                    <span class="close-btn" onclick="closeImageModal()">&times;</span>
-                    <img src="${imageUrl}" alt="Enlarged view" class="modal-image" 
-                         onload="adjustModalSize(this)">
-                    <div class="modal-actions">
-                        <a href="${imageUrl}" download="${imageName}" class="modal-download-btn">
-                        
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    document.body.style.overflow = 'hidden';
-}
-
-function adjustModalSize(imgElement) {
-    const modalContent = imgElement.closest('.modal-content');
-    const maxWidth = window.innerWidth * 0.9;
-    const maxHeight = window.innerHeight * 0.9;
-
-    // Get natural image dimensions
-    const naturalWidth = imgElement.naturalWidth;
-    const naturalHeight = imgElement.naturalHeight;
-
-    // Calculate aspect ratio
-    const aspectRatio = naturalWidth / naturalHeight;
-
-    // Determine display dimensions
-    let displayWidth = naturalWidth;
-    let displayHeight = naturalHeight;
-
-    if (naturalWidth > maxWidth) {
-        displayWidth = maxWidth;
-        displayHeight = maxWidth / aspectRatio;
-    }
-
-    if (displayHeight > maxHeight) {
-        displayHeight = maxHeight;
-        displayWidth = maxHeight * aspectRatio;
-    }
-
-    // Apply dimensions
-    modalContent.style.width = `${displayWidth}px`;
-    imgElement.style.maxWidth = `${displayWidth}px`;
-    imgElement.style.maxHeight = `${displayHeight}px`;
-
-    // Center modal vertically
-    const container = modalContent.closest('.modal-content-container');
-    container.style.alignItems = displayHeight >= maxHeight ? 'flex-start' : 'center';
-}
-
-function closeImageModal() {
-    const modal = document.querySelector('.image-modal');
-    if (modal) {
-        modal.remove();
-        document.body.style.overflow = '';
-    }
-}
-
-function generateVideoPreview(url, ext, name) {
-    return `
-        <div class="file-preview video-preview">
-            <video controls playsinline preload="metadata">
-                <source src="${url}" type="video/${ext}">
-            </video>
-            <div class="file-info">
-                <span class="file-name">${name}</span>
-                <a href="${url}" download="${name}" class="download-btn">
-                    <i class="ri-file-download-line"></i>
-                </a>
-            </div>
-        </div>
-    `;
-}
-
-function generateAudioPreview(url, ext, name) {
-    return `
-        <div class="file-preview audio-preview">
-            <audio controls preload="metadata">
-                <source src="${url}" type="audio/${ext}">
-            </audio>
-            <div class="file-info">
-                <span class="file-name">${name}</span>
-                <a href="${url}" download="${name}" class="download-btn">
-                    <i class="ri-file-download-line"></i>
-                </a>
-            </div>
-        </div>
-    `;
-}
-
-
-function generateDocumentPreview(url, ext, name) {
-    // Define your icon paths
-    const iconPaths = {
-        'pdf': '/static/images/pdf-icon.png',
-        'doc': '/static/images/doc-icon.png',
-        'docx': '/static/images/docx-icon.png',
-        'xls': '/static/images/xls-icon.png',
-        'xlsx': '/static/images/xls-icon.png',
-        'ppt': '/static/images/ppt-icon.png',
-        'pptx': '/static/images/pptx-icon.png',
-        'zip': '/static/images/zip-icon.png',
-    };
-
-    return `
-        <a href="${url}" download="${name}" class="file-download-link">
-            <div class="file-preview pdf-preview">
-                <div class="document-preview-container">
-                    <img src="${iconPaths[ext]}" alt="${ext.toUpperCase()} Icon" class="pdf-icon">
-                </div>
-                <div class="file-info">
-                    <span class="file-name">${name}</span>
-                    <div class="file-actions">
-                        <i class="ri-file-download-line download-icon"></i>
-                    </div>
-                </div>
-            </div>
-        </a>
-    `;
-}
-
-function generateGenericPreview(url, name) {
-    return `
-        <div class="file-preview generic-preview">
-            <div class="file-icon">
-                <i class="ri-file-line"></i>
-            </div>
-            <div class="file-info">
-                <span class="file-name">${name}</span>
-                <a href="${url}" download="${name}" class="download-btn">
-                    <i class="ri-file-download-line"></i>
-                </a>
-            </div>
-        </div>
-    `;
+    return previewHtml; // ✅ Ensure it always returns a valid string
 }
 
 // ================================ FILE PREVIEW FUNCTION ENDS HERE =====================================================================
@@ -1575,7 +1239,63 @@ function startPrivateChat(user_id, fullName, imageUrl) {
     document.getElementById("searchResults").innerHTML = "";
     document.getElementById("searchInput").value = "";
 }
+document.getElementById("attachFileIcon").addEventListener("click", function () {
+    document.getElementById("fileInput").click();
+});
 
+// Show preview when a file is selected
+const fileInput = document.getElementById("fileInput");
+fileInput.addEventListener("change", function () {
+    let file = fileInput.files[0];
+    if (file) {
+        let previewContainer = document.getElementById("filePreview");
+        if (!previewContainer) {
+            previewContainer = document.createElement("div");
+            previewContainer.id = "filePreview";
+            previewContainer.style.marginBottom = "10px"; // Add spacing
+            document.getElementById("chatInput").insertAdjacentElement("beforebegin", previewContainer);
+        }
+
+        let fileExt = file.name.split(".").pop().toLowerCase();
+        if (["png", "jpg", "jpeg", "gif", "mp4"].includes(fileExt)) {
+            // Display an image preview
+            let reader = new FileReader();
+            reader.onload = function (e) {
+                previewContainer.innerHTML = `
+                    <div style=" padding: 30px; display: flex; flex-direction: column; align-items: center; 
+                    justify-content: center; gap: 3px; background-color: #f9f9f9; border-radius: 5px;">
+                        <img  src="${e.target.result}" alt="${file.name}" style="max-width: 200px; border-radius: 5px;">
+
+                        <p style="text-align: center;">${file.name}</p>
+                        <button  onclick="removePreview()" style="background: red; color: white; border: none; 
+                        padding: 5px; cursor: pointer; align-self: flex-end;">x</button>
+                    </div>
+                    
+                `;
+            };
+            reader.readAsDataURL(file);
+        } else {
+            // Display file name only for non-image files
+            previewContainer.innerHTML = `
+                <div style="display: flex; align-items: center; text-align: center; gap: 3px; 
+                background-color: #f9f9f9;">
+                    <p>📂 ${file.name}</p>
+                    <button onclick="removePreview()" style="background: red; color: white; 
+                    border: none; padding: 5px; cursor: pointer;">x</button>
+                </div>
+            `;
+        }
+    }
+});
+
+// ---------------------------------- Function to remove file preview ---------------------------------------------------------------------------
+function removePreview() {
+    let previewContainer = document.getElementById("filePreview");
+    if (previewContainer) {
+        previewContainer.remove();
+    }
+    fileInput.value = ""; // Reset file input
+}
 
 // ========================================= FUNCTION TO ADD USERS TO CHATLIST FOR PRIVATE CHAT ENDS HERE =======================================
 // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -1761,109 +1481,135 @@ document.addEventListener("click", function (event) {
 // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 // ======================== FUNCTION TO TOGGLE CHAT ARE DROPDOWN FOR EACH CHAT MESSAGES IN THE CHAT AREA =============================
 
-document.addEventListener('DOMContentLoaded', function () {
-    document.addEventListener('click', function (e) {
-        // console.log('CLICK:', e.target);
-        const replyBtn = e.target.closest('.reply-message');
-        const copyBtn = e.target.closest('.copy-message');
-        const forwardBtn = e.target.closest('.forward-message');
-        const deleteBtn = e.target.closest('.delete-message');
-        const starMessage = e.target.closest('.star-message');
-        const dropdownToggle = e.target.closest('.conversation-item-dropdown-toggle');
-        const dropdown = e.target.closest('.conversation-item-dropdown');
+// document.addEventListener('DOMContentLoaded', function () {
+//     // Handle dropdown toggle
+//     document.addEventListener('click', function (e) {
+//         // Toggle dropdown
+//         if (e.target.closest('.conversation-item-dropdown-toggle')) {
+//             e.preventDefault();
+//             const dropdown = e.target.closest('.conversation-item-dropdown');
+//             document.querySelectorAll('.conversation-item-dropdown').forEach(d => {
+//                 if (d !== dropdown) d.classList.remove('active');
+//             });
+//             dropdown.classList.toggle('active');
+//         }
 
-        // Handle reply messages action FIRST
-        if (replyBtn) {
-            e.preventDefault();
-            const messageId = replyBtn.dataset.messageId;
-            replyMessage(messageId);
-            return; // important: prevent further dropdown handling conflict
-        }
+//         // Close dropdowns when clicking outside
+//         if (!e.target.closest('.conversation-item-dropdown')) {
+//             document.querySelectorAll('.conversation-item-dropdown').forEach(d => {
+//                 d.classList.remove('active');
+//             });
+//         }
 
-        // Copy message
-        if (copyBtn) {
-            e.preventDefault();
-            const messageId = copyBtn.dataset.messageId;
-            const messageElement = document.querySelector(`[data-message-id="${messageId}"] .message-text`);
+//         // Handle reply messages action
+//         if (e.target.closest('.reply-message')) {
+//             e.preventDefault();
+//             const messageId = e.target.closest('.reply-message').dataset.messageId;
+//             replyMessage(messageId);
+//         }
 
-            if (messageElement) {
-                const parts = messageElement.innerHTML.split('<br>');
-                const textOnly = parts.length > 1 ? parts[1].trim() : parts[0].trim();
-                const textToCopy = new DOMParser().parseFromString(textOnly, "text/html").body.textContent || "";
+//         if (e.target.closest('.copy-message')) {
+//             e.preventDefault();
+//             const messageId = e.target.closest('.copy-message').dataset.messageId;
+//             const messageElement = document.querySelector(`[data-message-id="${messageId}"] .message-text`);
 
-                navigator.clipboard.writeText(textToCopy)
-                    .then(() => {
-                        console.log("📋 Message copied:", textToCopy);
-                        showCopiedTooltip(copyBtn);
-                    })
-                    .catch(err => {
-                        console.error("❌ Failed to copy:", err);
-                    });
+//             if (messageElement) {
+//                 // Split the <p> content to skip the name (before <br>)
+//                 const parts = messageElement.innerHTML.split('<br>');
+//                 const textOnly = parts.length > 1 ? parts[1].trim() : parts[0].trim();
+
+//                 // Decode HTML entities (optional, if needed)
+//                 const textToCopy = new DOMParser().parseFromString(textOnly, "text/html").body.textContent || "";
+
+//                 navigator.clipboard.writeText(textToCopy)
+//                     .then(() => {
+//                         console.log("📋 Message copied:", textToCopy);
+//                         showCopiedTooltip(e.target.closest('.copy-message'));
+//                     })
+//                     .catch(err => {
+//                         console.error("❌ Failed to copy:", err);
+//                     });
+//             }
+//         }
+
+//         // Inside your DOM click event listener
+//         if (e.target.closest('.forward-message')) {
+//             e.preventDefault();
+//             const forwardBtn = e.target.closest('.forward-message');
+//             const messageId = forwardBtn.dataset.messageId;
+
+//             // Get the closest message bubble element
+//             const messageElement = forwardBtn.closest('.conversation-item-content')
+//                 || forwardBtn.closest('.message-wrapper');
+
+//             if (!messageElement) {
+//                 console.error("Message element not found");
+//                 return;
+//             }
+
+//             // Extract message data safely
+//             const messageText = messageElement.querySelector('.message-text')?.textContent || "";
+//             const filePreview = messageElement.querySelector('.media-preview');
+//             const isMedia = filePreview !== null;
+//             const mediaUrl = isMedia ? filePreview.src : null;
+//             const messageType = isMedia ? 'image' : 'text';
+
+//             openForwardModal(messageId, {
+//                 element: messageElement,
+//                 content: messageText,
+//                 type: messageType,
+//                 mediaUrl: mediaUrl
+//             });
+//         }
+
+//         // Handle delete action
+//         if (e.target.closest('.delete-message')) {
+//             e.preventDefault();
+//             const messageId = e.target.closest('.delete-message').dataset.messageId;
+//             deleteMessage(messageId);
+//         }
+//     });
+// });
+
+// Initialize once when DOM loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Set up close button handler
+    if (chatElements.closeReplyBtn) {
+        chatElements.closeReplyBtn.addEventListener('click', resetReplyPreview);
+    }
+
+    // Delegate all message actions
+    if (chatElements.messagesContainer) {
+        chatElements.messagesContainer.addEventListener('click', function(e) {
+            // Handle reply action
+            if (e.target.closest('.reply-message')) {
+                e.preventDefault();
+                const messageId = e.target.closest('.reply-message').dataset.messageId;
+                replyMessage(messageId);
             }
-            return;
-        }
-
-        // Forward
-        if (forwardBtn) {
-            e.preventDefault();
-            const messageId = forwardBtn.dataset.messageId;
-            const messageElement = forwardBtn.closest('.conversation-item-content') || forwardBtn.closest('.message-wrapper');
-
-            if (!messageElement) return;
-
-            const messageText = messageElement.querySelector('.message-text')?.textContent || "";
-            const filePreview = messageElement.querySelector('.media-preview');
-            const isMedia = filePreview !== null;
-            const mediaUrl = isMedia ? filePreview.src : null;
-            const messageType = isMedia ? 'image' : 'text';
-
-            openForwardModal(messageId, {
-                element: messageElement,
-                content: messageText,
-                type: messageType,
-                mediaUrl: mediaUrl
-            });
-            return;
-        }
-
-        // Delete
-        if (deleteBtn) {
-            e.preventDefault();
-            const messageId = deleteBtn.dataset.messageId;
-            deleteMessage(messageId);
-            return;
-        }
-
-        // Star Message
-        if (starMessage) {
-            e.preventDefault();
-            const messageId = starMessage.dataset.messageId;
-            toggleStarMessage(messageId);
-            return;
-        }
-
-        // Handle clicking the star icon itself
-        // if (e.target.classList.contains('starred-icon')) {
-        //     const messageWrapper = e.target.closest('.message-wrapper');
-        //     if (messageWrapper) {
-        //         const messageId = messageWrapper.dataset.messageId;
-        //         toggleStarMessage(messageId);
-        //     }
-        // }
-
-        // Toggle dropdown
-        if (dropdownToggle) {
-            e.preventDefault();
-            const dropdownMenu = dropdownToggle.closest('.conversation-item-dropdown');
-            document.querySelectorAll('.conversation-item-dropdown').forEach(d => {
-                if (d !== dropdownMenu) d.classList.remove('active');
-            });
-            dropdownMenu.classList.toggle('active');
-            return;
-        }
-
-        // Close all dropdowns if clicked outside
-        if (!dropdown) {
+            
+            // Handle dropdown toggle
+            if (e.target.closest('.conversation-item-dropdown-toggle')) {
+                e.preventDefault();
+                const dropdown = e.target.closest('.conversation-item-dropdown');
+                document.querySelectorAll('.conversation-item-dropdown').forEach(d => {
+                    if (d !== dropdown) d.classList.remove('active');
+                });
+                dropdown.classList.toggle('active');
+            }
+            
+            // Handle reply preview clicks
+            const replyBlock = e.target.closest('.replied-message');
+            if (replyBlock) {
+                const replyId = replyBlock.dataset.replyId;
+                if (replyId) scrollToMessage(replyId);
+            }
+        });
+    }
+    
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.conversation-item-dropdown')) {
             document.querySelectorAll('.conversation-item-dropdown').forEach(d => {
                 d.classList.remove('active');
             });
@@ -1891,162 +1637,95 @@ function showCopiedTooltip(targetElement) {
     }, 1500); // Hide after 1.5 seconds
 }
 
+
+
 // ----------------------------------------------------------------------------------------------------------------
 
-function replyMessage(messageId) {
-    // Get reply preview elements
-    const replyPreview = document.getElementById("replyPreview");
-    const replyContent = document.getElementById("replyContent");
-    const replyField = document.getElementById("reply_to_message_id");
 
-    // Ensure all required elements are present
-    if (!replyPreview || !replyContent || !replyField) {
-        console.error("❌ Missing reply preview elements (replyPreview, replyContent, or replyField)");
+
+function replyMessage(messageId) {
+    const message = messageStore.get(messageId);
+
+    if (!message) {
+        console.error(`Message ${messageId} not found in store`);
+        showToast("Original message not found");
         return;
     }
 
-    console.log("replyMessage called with ID:", messageId);
-
-    // Find the message wrapper using the message ID
     const messageWrapper = document.querySelector(`.message-wrapper[data-message-id="${messageId}"]`);
     if (!messageWrapper) {
-        console.error(`❌ Message with ID ${messageId} not found!`);
+        console.error(`Message element ${messageId} not found in DOM`);
         return;
     }
 
-    // Get message elements
     const messageTextElement = messageWrapper.querySelector('.message-text');
-    const filePreviewElement = messageWrapper.querySelector('.file-preview');
     const senderElement = messageWrapper.querySelector('strong');
-    const timestampElement = messageWrapper.querySelector('.timestamp');
 
-    // Get sender name (fallback to "You" if not found)
-    const senderName = senderElement ? senderElement.textContent.trim().replace(':', '') : "You";
-
-    // Clear previous reply content
-    replyContent.innerHTML = '';
-
-    // Create reply header
-    const replyHeader = document.createElement('div');
-    replyHeader.className = 'reply-header';
-    replyHeader.innerHTML = `<strong>${senderName}</strong>`;
-
-    // Add timestamp if available
-    if (timestampElement) {
-        const timestamp = document.createElement('span');
-        timestamp.className = 'reply-timestamp';
-        timestamp.textContent = timestampElement.textContent.trim();
-        replyHeader.appendChild(timestamp);
+    if (!messageTextElement) {
+        console.error("Message text element not found");
+        return;
     }
 
-    replyContent.appendChild(replyHeader);
+    const messageContent = messageTextElement.textContent;
+    const senderName = senderElement ? senderElement.textContent : "You";
 
-    // Handle different message types
-    if (filePreviewElement) {
-        // This is a file/image/video/audio message
-        const replyMedia = document.createElement('div');
-        replyMedia.className = 'reply-media-preview';
-
-        // Clone the relevant parts of the file preview
-        if (filePreviewElement.querySelector('img')) {
-            // Image preview
-            const img = filePreviewElement.querySelector('img').cloneNode(true);
-            img.style.maxHeight = '60px';
-            img.style.maxWidth = '100px';
-            img.style.borderRadius = '4px';
-            replyMedia.appendChild(img);
-        }
-        else if (filePreviewElement.querySelector('video')) {
-            // Video preview
-            const videoIcon = document.createElement('i');
-            videoIcon.className = 'ri-video-line';
-            replyMedia.appendChild(videoIcon);
-            const videoText = document.createElement('span');
-            videoText.textContent = 'Video';
-            replyMedia.appendChild(videoText);
-        }
-        else if (filePreviewElement.querySelector('audio')) {
-            // Audio preview
-            const audioIcon = document.createElement('i');
-            audioIcon.className = 'ri-music-2-line';
-            replyMedia.appendChild(audioIcon);
-            const audioText = document.createElement('span');
-            audioText.textContent = 'Audio';
-            replyMedia.appendChild(audioText);
-        }
-        else if (filePreviewElement.querySelector('.file-name')) {
-            // Generic file preview
-            const fileIcon = document.createElement('i');
-            fileIcon.className = 'ri-file-line';
-            replyMedia.appendChild(fileIcon);
-            const fileName = filePreviewElement.querySelector('.file-name').cloneNode(true);
-            fileName.style.maxWidth = '150px';
-            fileName.style.whiteSpace = 'nowrap';
-            fileName.style.overflow = 'hidden';
-            fileName.style.textOverflow = 'ellipsis';
-            replyMedia.appendChild(fileName);
-        }
-
-        replyContent.appendChild(replyMedia);
-    }
-    else if (messageTextElement) {
-        // This is a text message
-        const replyText = document.createElement('div');
-        replyText.className = 'reply-text-preview';
-
-        // Get text content (excluding sender name if present)
-        let messageText = messageTextElement.textContent.trim();
-        if (senderElement) {
-            messageText = messageText.replace(`${senderName}:`, '').trim();
-        }
-
-        // Limit preview length
-        messageText = messageText.length > 100
-            ? messageText.substring(0, 100) + '...'
-            : messageText;
-
-        replyText.textContent = messageText;
-        replyContent.appendChild(replyText);
-    }
-    else {
-        // Fallback for unknown message types
-        const unknownPreview = document.createElement('div');
-        unknownPreview.className = 'reply-unknown-preview';
-        unknownPreview.textContent = 'Message';
-        replyContent.appendChild(unknownPreview);
-    }
-
-    // Show reply preview and set the reply ID
-    replyPreview.style.display = 'flex';
-    replyField.value = messageId;
-
-    // Focus input
-    const messageInput = document.getElementById("messageInput");
-    if (messageInput) {
-        messageInput.focus();
-    }
+    // Update reply preview
+    chatElements.replyContent.textContent = `Replying to ${senderName}: "${truncate(messageContent, 50)}"`;
+    chatElements.replyPreview.style.display = 'block';
+    chatElements.replyField.value = messageId;
+    chatElements.messageInput?.focus();
 }
 
-
-// Close preview handler — get elements inside event listener to be safe
-const closeReplyBtn = document.getElementById("cancelReply");
-if (closeReplyBtn) {
-    closeReplyBtn.addEventListener('click', () => {
-        const replyPreview = document.getElementById("replyPreview");
-        const replyContent = document.getElementById("replyContent");
-        const replyField = document.getElementById("reply_to_message_id");
-
-        if (replyPreview) {
-            replyPreview.style.display = 'none';
-        }
-        if (replyContent) {
-            replyContent.textContent = '';
-        }
-        if (replyField) {
-            replyField.value = '';
-        }
-    });
+function resetReplyPreview() {
+    chatElements.replyPreview.style.display = 'none';
+    chatElements.replyField.value = '';
 }
+
+// function replyMessage(messageId) {
+//     const messageWrapper = document.querySelector(`.message-wrapper[data-message-id="${messageId}"]`);
+
+//     if (!messageWrapper) {
+//         console.error(`❌ Message with ID ${messageId} not found!`);
+//         return;
+//     }
+
+//     const messageTextElement = messageWrapper.querySelector('.message-text');
+//     const senderElement = messageWrapper.querySelector('strong');
+
+//     if (!messageTextElement) {
+//         console.error(`❌ .message-text element not found in message wrapper!`);
+//         return;
+//     }
+
+//     const messageContent = messageTextElement.textContent;
+//     const senderName = senderElement ? senderElement.textContent : "You";
+
+//     // Ensure all required elements are present
+//     if (!replyPreview || !replyContent || !replyField) {
+//         console.error("❌ Missing reply preview elements (replyPreview, replyContent, or replyField)");
+//         return;
+//     }
+
+//     // Update reply preview
+//     replyContent.textContent = `Replying to ${senderName}: "${messageContent}"`;
+//     replyPreview.style.display = 'block';
+//     replyField.value = messageId;
+
+//     // Close preview handler
+//     const closeReplyBtn = document.getElementById("closeReply");
+//     if (closeReplyBtn) {
+//         closeReplyBtn.onclick = function () {
+//             replyPreview.style.display = 'none';
+//             replyField.value = '';
+//         };
+//     }
+
+//     // Focus input
+//     const messageInput = document.getElementById("messageInput");
+//     if (messageInput) {
+//         messageInput.focus();
+//     }
+// }
 
 // --------------------------------- Function to open forward modal -------------------------------------------------
 const modal = document.getElementById("forwardModal");
@@ -2152,7 +1831,6 @@ searchInput.addEventListener('input', () => {
 });
 
 // --------------------FORWARD MESSAGE BUTTON -------------------------
-
 forwardBtn.addEventListener('click', async () => {
     if (selectedTargets.size === 0) {
         alert("Please select at least one recipient");
@@ -2202,128 +1880,3 @@ function deleteMessage(messageId) {
 
 // ======================== FUNCTION TO TOGGLE CHAT ARE DROPDOWN FOR EACH CHAT MESSAGES IN THE CHAT AREA =============================
 // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
-// Toggle star status
-function toggleStarMessage(messageId) {
-    const messageElement = document.querySelector(`.message-wrapper[data-message-id="${messageId}"]`);
-    if (!messageElement) return;
-
-    const isStarred = !messageElement.classList.contains('starred');
-    const userId = sessionStorage.getItem("user_id");
-
-    // // Optimistic UI update
-    // updateStarStatus(messageElement, isStarred);
-
-    // Optimistic UI update
-    messageElement.classList.toggle("starred", isStarred);
-    const starIcon = messageElement.querySelector(".starred-icon");
-    if (starIcon) {
-        starIcon.classList.toggle("ri-star-fill", isStarred);
-        starIcon.classList.toggle("ri-star-line", !isStarred);
-    }
-
-    // Send to server
-    socket.emit("star_message", {
-        message_id: messageId,
-        user_id: userId,
-        starred: isStarred
-    });
-}
-
-// Update star UI state
-function updateStarStatus(element, isStarred) {
-    // Toggle message highlight
-    element.classList.toggle('starred', isStarred);
-
-    // Update star icon
-    const starIcon = element.querySelector('.starred-icon');
-    if (starIcon) {
-        starIcon.classList.toggle('ri-star-line', !isStarred);
-        starIcon.classList.toggle('ri-star-fill', isStarred);
-    }
-
-    // Update dropdown text
-    const dropdownText = element.querySelector('.star-message');
-    if (dropdownText) {
-        dropdownText.innerHTML = isStarred
-            ? '<i class="ri-star-fill"></i> Unstar'
-            : '<i class="ri-star-line"></i> Star';
-    }
-}
-
-// Load starred messages modal
-async function loadStarredMessages() {
-    try {
-        const response = await fetch('/starred');
-        const data = await response.json();
-
-        const container = document.getElementById('starredMessagesList');
-        container.innerHTML = '';
-
-        if (!data.messages || data.messages.length === 0) {
-            container.innerHTML = '<div class="empty-state">No starred messages</div>';
-            return;
-        }
-
-        data.messages.forEach(msg => {
-            const messageEl = document.createElement('div');
-            messageEl.className = 'starred-message-item';
-            messageEl.innerHTML = `
-                <div class="starred-message-content">
-                    <i class="ri-star-fill star-indicator"></i>
-                    <div class="message-preview">
-                        <span class="sender">${msg.is_own_message ? 'You' : msg.sender_name}</span>
-                        <p class="message-text">
-                            ${getMessagePreview(msg)}
-                        </p>
-                    </div>
-                    <a href="${getMessageLink(msg)}" class="go-to-message">
-                        <i class="ri-arrow-right-line"></i>
-                    </a>
-                </div>
-                <div class="message-meta">
-                    <span class="timestamp">${formatTime(msg.timestamp)}</span>
-                </div>
-            `;
-            container.appendChild(messageEl);
-        });
-
-        // Show modal
-        document.getElementById('starredMessagesModal').classList.add('show');
-
-    } catch (error) {
-        console.error('Failed to load starred messages:', error);
-    }
-}
-
-// Helper function to generate message preview text
-function getMessagePreview(message) {
-    if (message.message_type === 'text') {
-        return message.message.length > 50
-            ? message.message.substring(0, 50) + '...'
-            : message.message;
-    }
-    return `📎 ${getFileType(message.message)}`;
-}
-
-// Helper function to generate message link
-function getMessageLink(message) {
-    if (message.group_id) {
-        return `/group/${message.group_id}?message=${message._id}`;
-    }
-    return `/chat/${message.private_chat_id}?message=${message._id}`;
-}
-
-// Helper function to get file type
-function getFileType(filename) {
-    const ext = filename.split('.').pop().toLowerCase();
-    const types = {
-        'jpg': 'Image',
-        'png': 'Image',
-        'mp4': 'Video',
-        'pdf': 'PDF',
-        'docx': 'Word Doc',
-        // Add more as needed
-    };
-    return types[ext] || 'File';
-}
