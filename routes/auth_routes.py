@@ -20,13 +20,14 @@ from pymongo.errors import PyMongoError
 
 
 # ======================= DATABASE CONNECTION ======================================================
-MONGO_URI = "mongodb://localhost:27017/chatDatabase"
+from config import MONGO_URI, MONGO_DB_NAME  # loaded from environment / .env
 
 # Simple local client
-mongo_client = MongoClient(MONGO_URI)
+from utils.functions import get_mongo_client
+mongo_client = get_mongo_client()  # shared connection pool
 
 # Set up database and GridFS
-db = mongo_client["chatDatabase"]
+db = mongo_client[MONGO_DB_NAME]
 fs = gridfs.GridFS(db)  # GridFS instance
 
 # Set up Flask-PyMongo
@@ -53,8 +54,20 @@ user_auth_bp = Blueprint('user_reg_and_login', __name__)
 
 @user_auth_bp.route('/register')
 def register():
-    # Fetch all groups **except** the "Civillian Staff" group
-    groups = list(db.groups.find({"name": {"$ne": "CIVILLIAN STAFF"}}, {"_id": 1, "name": 1}))
+    if "user_id" not in session:
+        return redirect('/login')
+    # # Fetch all groups except "CIVILLIAN STAFF" and "OFFICERS"
+    # groups = list(db.groups.find(
+    #     {"name": {"$nin": ["CIVILLIAN STAFF", "OFFICERS"]}},
+    #     {"_id": 1, "name": 1}
+    # ))
+
+    # ✅ Only fetch specific groups allowed during registration
+    allowed_groups = ["DEO", "DCS", "DNPT", "DOA", "DLSO", "DCYBER", "DFA", "DLOG", "DPPR", "DELSPACE"]
+    groups = list(db.groups.find(
+        {"name": {"$in": allowed_groups}},
+        {"_id": 1, "name": 1}
+    ))
 
     questions_collection = db['security_questions']
     questions = questions_collection.find()
@@ -66,7 +79,6 @@ def register():
 
 # ====================================== REGISTRATION FORM SUBMIT ============================
 
-# Registration Form Route
 @user_auth_bp.route('/submit_register', methods=['POST'])
 def submit_register():
     try:
@@ -108,13 +120,26 @@ def submit_register():
         group = db.groups.find_one({"_id": ObjectId(directorate)})
         if not group:
             return jsonify({"success": False, "error": "Invalid group selected"}), 400
-        group_name = group["name"]  # Store group name in the directorate field
+        # group_name = group["name"]  # Store group name in the directorate field
 
+        # Normalize staff ID
+        staffid_upper = staffid.upper()
 
-        # Get the Civillian Staff group _id
-        civillian_group = db.groups.find_one({"name": "CIVILLIAN STAFF"}, {"_id": 1})
-        if not civillian_group:
-            return jsonify({"success": False, "error": "Civillian Staff group not found"}), 500
+        # Always include the selected directorate
+        group_ids = [ObjectId(directorate)]
+
+        # Determine user group based on staff ID prefix
+        if staffid_upper.startswith("DSA"):
+            civillian_group = db.groups.find_one({"name": "CIVILLIAN STAFF"}, {"_id": 1})
+            if not civillian_group:
+                return jsonify({"success": False, "error": "CIVILLIAN STAFF group not found"}), 500
+            group_ids.append(civillian_group["_id"])
+
+        # elif staffid_upper.startswith("N"):
+        #     officers_group = db.groups.find_one({"name": "OFFICERS"}, {"_id": 1})
+        #     if not officers_group:
+        #         return jsonify({"success": False, "error": "OFFICERS"}), 500
+        #     group_ids.append(officers_group["_id"])
 
 
         # Insert new user into MongoDB
@@ -122,14 +147,27 @@ def submit_register():
             "staffid": staffid,
             "firstname": fname,
             "lastname": lname,
-            "directorate": group_name,
+            "directorate": group["name"],  # Store group name in the directorate field
             "password": hashed_password,
             "image": str(profile_picture_id),  # Store the GridFS file ID
-            "groups": [ObjectId(directorate), civillian_group["_id"]],
+            "groups": group_ids,
             "security_question": security_question,
             "security_answer": hashed_answer,
         }
-        db.users.insert_one(user_data)
+        insert_result = db.users.insert_one(user_data)
+        new_user_id = insert_result.inserted_id
+        
+
+        db.groups.update_many(
+            {"_id": {"$in": group_ids}},
+            {"$addToSet": {"members": {
+                "user_id": new_user_id,
+                "role": "member",
+                "joined_at": datetime.utcnow()
+            }}}
+        )
+
+        # )
         return jsonify({"success": True, "message": "Registration successful!"}), 201
 
     except Exception as e:
@@ -137,46 +175,73 @@ def submit_register():
 
 # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
-# ============================== LOGIN APP ROUTE ===================================
+# ============================== LOGIN APP ROUTE =============================================
 
-# App login Verifcation Route
+# App login Verification Route (handles both /submit_login and /login)
 @user_auth_bp.route('/submit_login', methods=['POST'])
+@user_auth_bp.route('/login', methods=['GET', 'POST'])
 def submit_login():
-    data = request.json
-    staffid = data.get("staffid")
-    password = data.get("password")
+    if request.method == 'GET':
+        if "user_id" in session:
+            try:
+                user = users.find_one({"_id": ObjectId(session["user_id"])})
+                if user:
+                    from routes.admin_routes import is_admin_user
+                    if is_admin_user(str(user["_id"])):
+                        return redirect("/admin")
+                    return redirect("/chat")
+                session.clear()
+            except Exception:
+                session.clear()
+        return render_template("login.html")
+
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
+    staffid = (data.get("staffid") or "").strip()
+    password = (data.get("password") or "").strip()
     remember_me = data.get("remember", False)
+    if isinstance(remember_me, str):
+        remember_me = remember_me.lower() in ("true", "1", "on", "yes")
 
-    user = users.find_one({"staffid": staffid})
+    is_ajax = request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest"
 
-    if user and "password" in user:
-        stored_password = user["password"]
+    if not staffid or not password:
+        if is_ajax:
+            return jsonify({"success": False, "error": "Missing credentials"}), 400
+        return render_template("login.html", error="Staff ID and password are required")
 
-        # Use Werkzeug's check_password_hash instead of bcrypt
-        if check_password_hash(stored_password, password):
-            session['user_id'] = str(user["_id"])
-            session['firstname'] = user['firstname']
-            session['staffid'] = user['staffid']
+    # Case-insensitive lookup with trimmed staffid
+    user = users.find_one({"staffid": {"$regex": f"^{re.escape(staffid)}$", "$options": "i"}})
 
+    if not user:
+        if is_ajax:
+            return jsonify({"success": False, "error": "User not found"}), 404
+        return render_template("login.html", error="User not found")
 
-            if remember_me:
-                session.permanent = True
-                current_app.permanent_session_lifetime = timedelta(days=30)
-
-                
-            return jsonify({"success": True, "redirect": "/chat"})
-        else:
+    stored_password = user.get("password")
+    if not stored_password or not check_password_hash(stored_password, password):
+        if is_ajax:
             return jsonify({"success": False, "error": "Invalid credentials"}), 401
-    else:
-        return jsonify({"success": False, "error": "User not found"}), 404
+        return render_template("login.html", error="Invalid credentials")
 
+    # Store session details
+    session['user_id'] = str(user["_id"])
+    session['firstname'] = user.get('firstname', '')
+    session['lastname'] = user.get('lastname', '')
+    session['staffid'] = user.get('staffid', '')
+
+    from routes.admin_routes import is_admin_user
+    is_admin = is_admin_user(str(user["_id"]))
+    session['is_admin'] = is_admin
+
+    if remember_me:
+        session.permanent = True  # Keeps cookie for permanent_session_lifetime
+        current_app.permanent_session_lifetime = timedelta(days=30)
+
+    redirect_target = "/admin" if is_admin else "/chat"
+
+    if is_ajax:
+        return jsonify({"success": True, "redirect": redirect_target})
+    return redirect(redirect_target)
+    
 # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
-# ================================== LOGIN APP ROUTE ===================================
-
-# App Login Page Route 
-@user_auth_bp.route('/login')
-def login():
-    return render_template('login.html')
-
-# xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx

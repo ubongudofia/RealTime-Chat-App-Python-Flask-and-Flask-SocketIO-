@@ -15,19 +15,21 @@ import gridfs
 from gridfs.errors import NoFile
 from pymongo.errors import PyMongoError
 from utils.functions import get_db_connection
+import mimetypes
 
 
 
 
 
 # ======================= DATABASE CONNECTION ======================================================
-MONGO_URI = "mongodb://localhost:27017/chatDatabase"
+from config import MONGO_URI, MONGO_DB_NAME  # loaded from environment / .env
 
 # Simple local client
-mongo_client = MongoClient(MONGO_URI)
+from utils.functions import get_mongo_client
+mongo_client = get_mongo_client()  # shared connection pool
 
 # Set up database and GridFS
-db = mongo_client["chatDatabase"]
+db = mongo_client[MONGO_DB_NAME]
 fs = gridfs.GridFS(db)  # GridFS instance
 
 # Set up Flask-PyMongo
@@ -39,25 +41,27 @@ fs = gridfs.GridFS(db)  # GridFS instance
 # Define collections
 users = db["users"]
 users_collection = db["users"]
-groups_collection = db["groups"]
-user_groups_collection = db["user_groups"]
-private_chats_collection = db["private_chats"]
-messages_collection = db["messages"]
-questions_collection = db['security_questions']
 
 # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 # BLUEPRINTS NAME
 # Create a blueprint for the profile images routes
 profile_pictures_bp = Blueprint('profile_images', __name__)
 
+# # ====================== FILE UPLOAD =======================================================
 
-# ====================== FILE UPLOAD =======================================================
+# # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
-@profile_pictures_bp.route('/uploads/<filename>')
-def uploaded_file(filename):
-    return send_from_directory(current_app.config['UPLOAD_FOLDER'], filename)
+# Allowed file types (optional safety)
+ALLOWED_EXTENSIONS = {
+    "png", "jpg", "jpeg", "gif", "webp",
+    "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "zip",
+    "mp4", "mp3", "wav", "ogg", "webm", "m4a", "aac"
+}
 
-# ====================== FILE UPLOAD HANDLER ==================================================
+def allowed_file(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# ====================== FILE UPLOAD HANDLER (GridFS) ==========================
 
 @profile_pictures_bp.route("/upload", methods=["POST"])
 def upload_file():
@@ -65,94 +69,119 @@ def upload_file():
         return jsonify({"success": False, "error": "No file part"}), 400
 
     file = request.files["file"]
+
     if file.filename == "":
         return jsonify({"success": False, "error": "No selected file"}), 400
 
+    if not allowed_file(file.filename):
+        return jsonify({"success": False, "error": "File type not allowed"}), 400
+
     filename = secure_filename(file.filename)
-    file_path = os.path.join("uploads", filename)
-    file.save(file_path)
+    content_type = file.mimetype or mimetypes.guess_type(filename)[0] or "application/octet-stream"
+    lower_name = filename.lower()
 
-    file_url = f"/uploads/{filename}"
+    try:
+        # Save file to GridFS
+        file_id = fs.put(file, filename=filename, content_type=content_type)
 
-    return jsonify({"success": True, "file_url": file_url}), 200
+        # Detect general type (image, video, audio, document, etc.)
+        if content_type.startswith("audio/") or lower_name.startswith("voice_note_") or lower_name.endswith((".mp3", ".wav", ".ogg", ".m4a", ".aac")):
+            file_type = "audio"
+        elif content_type.startswith("image/"):
+            file_type = "image"
+        elif content_type.startswith("video/"):
+            file_type = "video"
+        else:
+            file_type = "file"
 
-# xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        return jsonify({
+            "success": True,
+            "file_id": str(file_id),
+            "file_name": filename,
+            "file_type": file_type
+        })
 
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ====================== FILE RETRIEVAL HANDLER ================================
+@profile_pictures_bp.route("/file/<file_id>")
+def get_file(file_id):
+    try:
+        file = fs.get(ObjectId(file_id))
+        return Response(file.read(), mimetype=file.content_type)
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 404
 
 
 # ============================= GET ALL GROUP PROFILE IMAGE ==================================
 @profile_pictures_bp.route('/group_image/<group_id>')
 def get_group_image(group_id):
+    default_img_dir = os.path.join(current_app.root_path, 'static', 'images')
     try:
         db = get_db_connection()
 
         if not ObjectId.is_valid(group_id):  # Ensure valid ObjectId
-            return jsonify({"success": False, "error": "Invalid group ID"}), 400
+            return send_from_directory(default_img_dir, 'dsa-logo.png')
 
         group = db.groups.find_one({"_id": ObjectId(group_id)}, {"image": 1})
         if not group or not group.get("image"):
-            return jsonify({"success": False, "error": "No image found"}), 404
+            return send_from_directory(default_img_dir, 'dsa-logo.png')
 
-        image_id = group["image"]
+        image_id = str(group["image"])
         if not ObjectId.is_valid(image_id):  # Ensure valid image ID
-            return jsonify({"success": False, "error": "Invalid image ID"}), 400
+            return send_from_directory(default_img_dir, 'dsa-logo.png')
 
         try:
             image_file = fs.get(ObjectId(image_id))  # Retrieve image from GridFS
         except NoFile:
-            return jsonify({"success": False, "error": "Image not found in GridFS"}), 404
+            return send_from_directory(default_img_dir, 'dsa-logo.png')
 
         return Response(image_file.read(), mimetype=image_file.content_type)
 
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return send_from_directory(default_img_dir, 'dsa-logo.png')
     
 # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
-# ============================= GET STATIC FILE FROM STATIC FOLDER ===========================
-
-# @profile_pictures_bp.route('/static/<path:filename>')
-# def serve_static(filename):
-#     return send_from_directory('static', filename)
 
 # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 # =================================== GET USER PROFILE PICTURE ===============================
 @profile_pictures_bp.route('/profile_picture/<user_id>')
 def get_profile_picture(user_id):
+    default_img_dir = os.path.join(current_app.root_path, 'static', 'images')
     try:
         db = get_db_connection()
-        print(f"Fetching profile picture for user: {user_id}")
 
-        if not ObjectId.is_valid(user_id):  
-            return jsonify({"success": False, "error": "Invalid user ID"}), 400
+        if not ObjectId.is_valid(user_id):
+            return send_from_directory(default_img_dir, 'default-profile.png')
 
         user = db.users.find_one({"_id": ObjectId(user_id)}, {"image": 1})
-        print(f"User data fetched: {user}")  # Debugging
 
         if not user or not user.get("image"):
-            return jsonify({"success": False, "error": "No image found"}), 404
+            return send_from_directory(default_img_dir, 'default-profile.png')
 
-        image_id = user["image"]
-        print(f"Image ID found: {image_id}")
+        image_id = str(user["image"])
 
-        if not ObjectId.is_valid(image_id):  
-            return jsonify({"success": False, "error": "Invalid image ID"}), 400
+        if not ObjectId.is_valid(image_id):
+            return send_from_directory(default_img_dir, 'default-profile.png')
 
         try:
-            image_file = fs.get(ObjectId(image_id))  
-            print(f"Image successfully retrieved from GridFS")
+            image_file = fs.get(ObjectId(image_id))
         except NoFile:
-            return jsonify({"success": False, "error": "Image not found in GridFS"}), 404
+            return send_from_directory(default_img_dir, 'default-profile.png')
 
-        return Response(image_file.read(), mimetype=image_file.content_type)
+        response = Response(image_file.read(), mimetype=image_file.content_type)
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        return response
 
     except Exception as e:
-        print(f"Error: {e}")  # Debugging
-        return jsonify({"success": False, "error": str(e)}), 500
+        print(f"Error serving profile picture: {e}")
+        return send_from_directory(default_img_dir, 'default-profile.png')
 
 
 # Display in HTML
 # <img src="/profile_picture/{{ user_id }}" alt="Profile Picture">
 
-# xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx 

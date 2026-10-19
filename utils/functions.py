@@ -18,17 +18,21 @@ from gridfs.errors import NoFile
 from pymongo.errors import PyMongoError
 
 
+import traceback
+
 # ======================= DATABASE CONNECTION ======================================================
-# Set up database and GridFs
-# This function establishes a connection to the MongoDB database and returns the database object.
-# It uses the MongoClient to connect to the database and specifies the database name.
+# Set up shared database client and GridFS (URI comes from environment via config.py)
+from config import MONGO_URI, MONGO_DB_NAME
+_mongo_client = MongoClient(MONGO_URI)
+_db = _mongo_client[MONGO_DB_NAME]
 
 def get_db_connection():
-    MONGO_URI = "mongodb://localhost:27017/chatDatabase"
-    mongo_client = MongoClient(MONGO_URI)
-    # Set up database and GridFS
-    db = mongo_client["chatDatabase"]
-    return db
+    return _db
+
+
+def get_mongo_client():
+    return _mongo_client
+
 
 # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
@@ -173,80 +177,160 @@ user_timezone = pytz.timezone('Africa/Lagos')  # Update with the correct timezon
 
 def get_user_chats(user_id):
     db = get_db_connection()
+    user_obj_id = ObjectId(user_id)
 
-    user = db.users.find_one({"_id": ObjectId(user_id)}, {"groups": 1})
-    if not user:
-        return []
+    user = db.users.find_one({"_id": user_obj_id}, {"groups": 1})
+    user_group_ids = user.get("groups", []) if user else []
 
-    # Get user's groups, excluding deleted ones
+    # Get user's groups (by user.groups list OR membership in group.members), excluding deleted ones
     group_chats = list(db.groups.find(
-    {"_id": {"$in": user["groups"]}, "deleted": {"$ne": True}},  # Exclude deleted chats
-    {"_id": 1, "name": 1, "image": 1}
-))
+        {
+            "$or": [
+                {"_id": {"$in": user_group_ids}},
+                {"members": user_obj_id},
+                {"members.user_id": user_obj_id}
+            ],
+            "deleted": {"$ne": True}
+        },
+        {"_id": 1, "name": 1, "image": 1}
+    ))
 
+    # Bulk query: get last message for ALL groups in one aggregation
+    group_ids = [g["_id"] for g in group_chats]
+    group_last_messages = {}
+    if group_ids:
+        group_pipeline = [
+            {"$match": {"group_id": {"$in": group_ids}, "deleted_for_me": {"$nin": [user_obj_id]}}},
+            {"$sort": {"timestamp": -1, "_id": -1}},
+            {"$group": {
+                "_id": "$group_id",
+                "message": {"$first": "$message"},
+                "message_type": {"$first": "$message_type"},
+                "file_name": {"$first": "$file_name"},
+                "display_text": {"$first": "$display_text"},
+                "timestamp": {"$first": "$timestamp"}
+            }}
+        ]
+        for doc in db.messages.aggregate(group_pipeline):
+            group_last_messages[doc["_id"]] = doc
 
+    formatted_group_chats = []
     for group in group_chats:
-        last_message = db.messages.find_one(
-            {"group_id": group["_id"]},
-            {"message": 1, "timestamp": 1},
-            sort=[("timestamp", -1)]
-        )
-        group["type"] = "group"
-        group["image"] = group.get("image", "")
-        group["last_message"] = format_last_message(last_message["message"]) if last_message else "No messages yet"
-        group["timestamp"] = format_timestamp(last_message["timestamp"]) if last_message else ""
+        last_msg = group_last_messages.get(group["_id"])
+        msg_text = ""
+        msg_type = "text"
+        file_name = None
+        ts = None
+        if last_msg:
+            msg_type = last_msg.get("message_type", "text")
+            msg_text = (
+                last_msg.get("display_text") or last_msg.get("message")
+                if msg_type == "system"
+                else last_msg.get("message", "")
+            )
+            file_name = last_msg.get("file_name")
+            ts = last_msg.get("timestamp")
+
+        formatted_group_chats.append({
+            "id": str(group["_id"]),
+            "name": group.get("name", "Unnamed Group"),
+            "type": "group",
+            "image": group.get("image", ""),
+            "group_doc": group,
+            "last_message": format_last_message(msg_text) if msg_text else "No messages yet",
+            "last_message_raw": msg_text or "",
+            "message_type": "text" if msg_type == "system" else msg_type,
+            "file_name": file_name,
+            "raw_timestamp": ts,
+            "timestamp": format_timestamp(ts) if ts else ""
+        })
 
     # Get private chats, excluding deleted ones
     private_chats = list(db.private_chats.find(
-    {
-        "$or": [{"user1_id": ObjectId(user_id)}, {"user2_id": ObjectId(user_id)}],
-        "deleted": {"$ne": True}  # Exclude deleted chats
-    }
-))
+        {
+            "$or": [{"user1_id": user_obj_id}, {"user2_id": user_obj_id}],
+            "deleted": {"$ne": True}
+        }
+    ))
 
+    # Bulk query: get other users info for ALL private chats in one query
+    other_user_ids = []
+    for chat in private_chats:
+        oid = chat["user1_id"] if chat["user2_id"] == user_obj_id else chat["user2_id"]
+        other_user_ids.append(oid)
+
+    other_users_map = {}
+    if other_user_ids:
+        for u in db.users.find(
+            {"_id": {"$in": list(set(other_user_ids))}},
+            {"firstname": 1, "lastname": 1, "image": 1, "is_online": 1, "last_seen": 1}
+        ):
+            other_users_map[u["_id"]] = u
+
+    # Bulk query: get last message for ALL private chats in one aggregation
+    private_chat_ids = [c["_id"] for c in private_chats]
+    private_last_messages = {}
+    if private_chat_ids:
+        private_pipeline = [
+            {"$match": {"private_chat_id": {"$in": private_chat_ids}, "deleted_for_me": {"$nin": [user_obj_id]}}},
+            {"$sort": {"timestamp": -1, "_id": -1}},
+            {"$group": {
+                "_id": "$private_chat_id",
+                "message": {"$first": "$message"},
+                "message_type": {"$first": "$message_type"},
+                "file_name": {"$first": "$file_name"},
+                "display_text": {"$first": "$display_text"},
+                "timestamp": {"$first": "$timestamp"}
+            }}
+        ]
+        for doc in db.messages.aggregate(private_pipeline):
+            private_last_messages[doc["_id"]] = doc
 
     private_chat_data = []
     for chat in private_chats:
-        other_user_id = chat["user1_id"] if chat["user2_id"] == ObjectId(user_id) else chat["user2_id"]
-        other_user = db.users.find_one(
-            {"_id": other_user_id},
-            {"firstname": 1, "lastname": 1, "image": 1}
-        )
+        other_user_id = chat["user1_id"] if chat["user2_id"] == user_obj_id else chat["user2_id"]
+        other_user = other_users_map.get(other_user_id)
 
-        chat_name = f"{other_user['firstname']} {other_user['lastname']}" if other_user else "Unknown"
-        profile_picture = f"/profile_picture/{other_user_id}" if other_user and "image" in other_user else "/static/images/default-profile.png"
+        chat_name = f"{other_user.get('firstname', '')} {other_user.get('lastname', '')}".strip() if other_user else "Unknown"
+        profile_picture = f"/profile_picture/{other_user_id}" if other_user and other_user.get("image") else "/static/images/default-profile.png"
 
-        last_message = db.messages.find_one(
-            {"private_chat_id": chat["_id"]},
-            {"message": 1, "timestamp": 1},
-            sort=[("timestamp", -1)]
-        )
+        last_msg = private_last_messages.get(chat["_id"])
+        msg_text = ""
+        msg_type = "text"
+        file_name = None
+        ts = None
+        if last_msg:
+            msg_type = last_msg.get("message_type", "text")
+            msg_text = (
+                last_msg.get("display_text") or last_msg.get("message")
+                if msg_type == "system"
+                else last_msg.get("message", "")
+            )
+            file_name = last_msg.get("file_name")
+            ts = last_msg.get("timestamp")
 
         private_chat_data.append({
             "id": str(chat["_id"]),
+            "other_user_id": str(other_user_id),
+            "other_user_doc": other_user,
             "name": chat_name,
             "type": "private",
             "image": profile_picture,
-            "last_message": format_last_message(last_message["message"]) if last_message else "No messages yet",
-            "timestamp": format_timestamp(last_message["timestamp"]) if last_message else ""
+            "last_message": format_last_message(msg_text) if msg_text else "No messages yet",
+            "last_message_raw": msg_text or "",
+            "message_type": "text" if msg_type == "system" else msg_type,
+            "file_name": file_name,
+            "raw_timestamp": ts,
+            "timestamp": format_timestamp(ts) if ts else "",
+            "is_online": bool(other_user.get("is_online", False)) if other_user else False,
+            "last_seen": other_user.get("last_seen") if other_user else None
         })
 
-    # Format and sort chats
-    formatted_group_chats = [
-        {
-            "id": str(chat["_id"]),
-            "name": chat["name"],
-            "type": "group",
-            "image": chat["image"],
-            "last_message": chat["last_message"],
-            "timestamp": chat["timestamp"]
-        }
-        for chat in group_chats
-    ]
-
     all_chats = formatted_group_chats + private_chat_data
-    all_chats.sort(key=lambda chat: chat["timestamp"] or "1970-01-01T00:00:00Z", reverse=True)
-
+    all_chats.sort(
+        key=lambda c: c.get("raw_timestamp") or datetime.min,
+        reverse=True
+    )
     return all_chats
 
 # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -300,34 +384,46 @@ def get_chats():
         return jsonify({"success": False, "error": "User not logged in"}), 401
 
     db = get_db_connection()
+    user_obj_id = ObjectId(user_id)
 
     # Fetch user's private chats
     private_chats = list(db.private_chats.find({
-        "$or": [{"user1_id": ObjectId(user_id)}, {"user2_id": ObjectId(user_id)}]
+        "$or": [{"user1_id": user_obj_id}, {"user2_id": user_obj_id}],
+        "deleted": {"$ne": True}
     }))
+
+    other_user_ids = [c["user1_id"] if c["user2_id"] == user_obj_id else c["user2_id"] for c in private_chats]
+    other_users_map = {
+        u["_id"]: u for u in db.users.find(
+            {"_id": {"$in": list(set(other_user_ids))}},
+            {"firstname": 1, "lastname": 1, "image": 1}
+        )
+    }
 
     private_chat_list = []
     for chat in private_chats:
-        other_user_id = chat["user1_id"] if str(chat["user2_id"]) == user_id else chat["user2_id"]
-        other_user = db.users.find_one({"_id": other_user_id}, {"firstname": 1, "lastname": 1, "image": 1})
-
+        other_user_id = chat["user1_id"] if chat["user2_id"] == user_obj_id else chat["user2_id"]
+        other_user = other_users_map.get(other_user_id)
         if other_user:
             private_chat_list.append({
                 "chat_id": str(chat["_id"]),
                 "chat_type": "private",
-                "name": f"{other_user.get('firstname', 'Unknown')} {other_user.get('lastname', '')}",
-                "image_url": url_for("get_profile_picture", user_id=str(other_user["_id"])) if other_user.get("image") else None,
-                "unread_count": 0  # Update this logic based on unread messages
+                "name": f"{other_user.get('firstname', 'Unknown')} {other_user.get('lastname', '')}".strip(),
+                "image_url": url_for("profile_images.get_profile_picture", user_id=str(other_user["_id"])) if other_user.get("image") else None,
+                "unread_count": 0
             })
 
     # Fetch user's group chats
-    user_groups = db.groups.find({"members": ObjectId(user_id)})
+    user_groups = list(db.groups.find(
+        {"$or": [{"members": user_obj_id}, {"members.user_id": user_obj_id}], "deleted": {"$ne": True}},
+        {"_id": 1, "name": 1, "image": 1}
+    ))
     group_chat_list = [{
         "chat_id": str(group["_id"]),
         "chat_type": "group",
-        "name": group["name"],
-        "image_url": "/static/group-avatar.png",
-        "unread_count": 0  # Update based on unread messages
+        "name": group.get("name", "Unnamed Group"),
+        "image_url": "/static/images/dsa-logo.png",
+        "unread_count": 0
     } for group in user_groups]
 
     return jsonify({"success": True, "chats": private_chat_list + group_chat_list})
@@ -338,39 +434,60 @@ def get_chats():
 
 def get_unread_count(user_id):
     db = get_db_connection()
+    user_obj_id = ObjectId(user_id)
 
     unread_private = {}
     unread_group = {}
 
-    # Private Chats: Count unread messages from others
-    private_chats = db.private_chats.find({
-        "$or": [{"user1_id": ObjectId(user_id)}, {"user2_id": ObjectId(user_id)}]
-    })
-    
-    for chat in private_chats:
-        unread_count = db.messages.count_documents({
-            "private_chat_id": chat["_id"],
-            "sender_id": {"$ne": ObjectId(user_id)},  # Others' messages
-            "read_by": {"$nin": [ObjectId(user_id)]}   # Not read by current user
-        })
-        unread_private[str(chat["_id"])] = unread_count
+    # Private Chats: Count unread messages from others in a single aggregation
+    private_chats = list(db.private_chats.find(
+        {"$or": [{"user1_id": user_obj_id}, {"user2_id": user_obj_id}], "deleted": {"$ne": True}},
+        {"_id": 1}
+    ))
+    private_chat_ids = [c["_id"] for c in private_chats]
+    if private_chat_ids:
+        pipeline = [
+            {
+                "$match": {
+                    "private_chat_id": {"$in": private_chat_ids},
+                    "user_id": {"$ne": user_obj_id},          # Others' messages
+                    "message_type": {"$ne": "system"},
+                    "system": {"$ne": True},
+                    "read_by": {"$nin": [user_obj_id]},       # Not read by current user
+                    "deleted_for_me": {"$nin": [user_obj_id]}
+                }
+            },
+            {"$group": {"_id": "$private_chat_id", "count": {"$sum": 1}}}
+        ]
+        for doc in db.messages.aggregate(pipeline):
+            unread_private[str(doc["_id"])] = doc["count"]
 
-    # Group Chats: Count unread messages (regardless of sender)
-    user_groups = db.users.find_one(
-        {"_id": ObjectId(user_id)}, 
-        {"groups": 1}
-    )
-    
-    if user_groups and "groups" in user_groups:
-        for group_id in user_groups["groups"]:
-            unread_count = db.messages.count_documents({
-                "group_id": group_id,
-                "read_by": {"$nin": [ObjectId(user_id)]}  # Not read by current user
-            })
-            unread_group[str(group_id)] = unread_count
+    # Group Chats: Count unread messages from others in a single aggregation
+    user_groups = db.users.find_one({"_id": user_obj_id}, {"groups": 1})
+    group_ids = set(user_groups.get("groups", [])) if user_groups else set()
+    for g in db.groups.find(
+        {"$or": [{"members": user_obj_id}, {"members.user_id": user_obj_id}], "deleted": {"$ne": True}},
+        {"_id": 1}
+    ):
+        group_ids.add(g["_id"])
 
-    print("Unread Count - Private:", unread_private)  # Debugging output
-    print("Unread Count - Group:", unread_group)  # Debugging output
+    group_ids_list = list(group_ids)
+    if group_ids_list:
+        pipeline = [
+            {
+                "$match": {
+                    "group_id": {"$in": group_ids_list},
+                    "user_id": {"$ne": user_obj_id},          # Exclude own messages
+                    "message_type": {"$ne": "system"},
+                    "system": {"$ne": True},
+                    "read_by": {"$nin": [user_obj_id]},       # Not read by current user
+                    "deleted_for_me": {"$nin": [user_obj_id]}
+                }
+            },
+            {"$group": {"_id": "$group_id", "count": {"$sum": 1}}}
+        ]
+        for doc in db.messages.aggregate(pipeline):
+            unread_group[str(doc["_id"])] = doc["count"]
 
     return {"private": unread_private, "group": unread_group}
 

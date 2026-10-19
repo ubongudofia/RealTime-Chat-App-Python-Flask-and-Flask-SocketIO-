@@ -1,0 +1,53 @@
+{
+  "id": "/?source=pwa",
+  "name": "DSA MESSENGER",
+  "short_name": "DSA Messenger",
+  "description": "Secure real-time messaging application for Defence Space Administration staff",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#008069",
+  "categories": ["communication", "productivity", "social"],
+  "icons": [
+    {
+      "src": "/static/icons/dsa-logo-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/dsa-logo-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/static/icons/dsa-logo-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/dsa-logo-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Open Chats",
+      "short_name": "Chats",
+      "description": "View active chat conversations",
+      "url": "/chat",
+      "icons": [
+        {
+          "src": "/static/icons/dsa-logo-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

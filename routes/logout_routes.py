@@ -20,13 +20,14 @@ from pymongo.errors import PyMongoError
 
 
 # ======================= DATABASE CONNECTION ======================================================
-MONGO_URI = "mongodb://localhost:27017/chatDatabase"
+from config import MONGO_URI, MONGO_DB_NAME  # loaded from environment / .env
 
 # Simple local client
-mongo_client = MongoClient(MONGO_URI)
+from utils.functions import get_mongo_client
+mongo_client = get_mongo_client()  # shared connection pool
 
 # Set up database and GridFS
-db = mongo_client["chatDatabase"]
+db = mongo_client[MONGO_DB_NAME]
 fs = gridfs.GridFS(db)  # GridFS instance
 
 # Set up Flask-PyMongo
@@ -50,16 +51,10 @@ questions_collection = db['security_questions']
 logout_bp = Blueprint('logout', __name__)
 
 # ========================== LOGOUT =================================
-
 @logout_bp.route('/logout', methods=['GET'])
 def logout():
-    session.pop('user_id', None)  # Remove user_id from session
-    session.pop('firstname', None)  # Remove firstname from session
-    session.pop('staffid', None)  # Remove staffid from session (if stored)
-    
-    session.clear()  # Clear entire session
-    return redirect(url_for('user_reg_and_login.login'))
-
+    session.clear()  # Completely clear the session
+    return redirect(url_for('login'))  # Adjust to your login route name
 # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 
@@ -82,13 +77,4 @@ def get_session_data():
 
 # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
-
-
-# ========================== DEBUG SESSION =================================
-
-@logout_bp.route('/debug_session')
-def debug_session():
-    return jsonify(dict(session))  # ✅ View session contents
-
-# xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 

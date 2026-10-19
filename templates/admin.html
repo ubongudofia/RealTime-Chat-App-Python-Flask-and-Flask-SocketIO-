@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Console - DSA Messenger</title>
+
+    <!-- RemixIcon & Manifest -->
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.2.0/fonts/remixicon.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}?v=2" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='pwa-installer.css') }}" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#008069">
+    <script src="{{ url_for('static', filename='pwa-installer.js') }}" defer></script>
+</head>
+
+<body class="admin-body">
+    <div class="admin-layout">
+        <!-- ==============================================================================
+             SIDEBAR NAVIGATION
+             ============================================================================== -->
+        <aside class="admin-sidebar">
+            <div class="admin-sidebar-header">
+                <a href="/admin" class="admin-brand">
+                    <img src="{{ url_for('static', filename='images/dsa-logo.png') }}" alt="DSA Logo" class="admin-brand-logo" onerror="this.src='/static/images/savl-logo.png'">
+                    <div class="admin-brand-info">
+                        <h1>DSA MESSENGER</h1>
+                        <span class="admin-brand-badge">ADMIN CONSOLE</span>
+                    </div>
+                </a>
+            </div>
+
+            <div class="admin-nav-section-title">Core Management</div>
+            <ul class="admin-nav-menu">
+                <li class="admin-nav-item active" data-tab="dashboard">
+                    <a class="admin-nav-link">
+                        <i class="ri-dashboard-3-line"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="admin-nav-item" data-tab="users">
+                    <a class="admin-nav-link">
+                        <i class="ri-user-settings-line"></i>
+                        <span>Staff Directory</span>
+                        <span class="admin-nav-badge" id="badgeOnlineCount">...</span>
+                    </a>
+                </li>
+                <li class="admin-nav-item" data-tab="groups">
+                    <a class="admin-nav-link">
+                        <i class="ri-team-line"></i>
+                        <span>Groups & Teams</span>
+                        <span class="admin-nav-badge" id="groupsCountBadge">...</span>
+                    </a>
+                </li>
+                <li class="admin-nav-item" data-tab="messages">
+                    <a class="admin-nav-link">
+                        <i class="ri-chat-check-line"></i>
+                        <span>Message Moderation</span>
+                    </a>
+                </li>
+                <li class="admin-nav-item" data-tab="media">
+                    <a class="admin-nav-link">
+                        <i class="ri-folder-shield-2-line"></i>
+                        <span>Media & Storage</span>
+                    </a>
+                </li>
+                <li class="admin-nav-item" data-tab="broadcast">
+                    <a class="admin-nav-link">
+                        <i class="ri-broadcast-line"></i>
+                        <span>Broadcast Alerts</span>
+                    </a>
+                </li>
+
+                <div class="admin-nav-section-title" style="margin-top:10px;">Infrastructure</div>
+                <li class="admin-nav-item" data-tab="system">
+                    <a class="admin-nav-link">
+                        <i class="ri-shield-keyhole-line"></i>
+                        <span>System & Security</span>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="admin-sidebar-footer">
+                <div class="admin-user-pill">
+                    <img class="admin-user-avatar" src="/profile_picture/{{ user_id }}" alt="Admin Avatar" onerror="this.src='/static/images/default-profile.png'">
+                    <div class="admin-user-info">
+                        <div class="admin-user-name">{{ admin_name }}</div>
+                        <div class="admin-user-role">Administrator &bull; {{ admin_staffid }}</div>
+                    </div>
+                </div>
+                <a href="/logout" class="btn-admin-logout" id="adminLogoutBtn" title="Sign out of Admin Console">
+                    <i class="ri-logout-box-r-line"></i> Logout
+                </a>
+            </div>
+        </aside>
+
+        <!-- ==============================================================================
+             MAIN VIEWPORT
+             ============================================================================== -->
+        <main class="admin-main">
+            <!-- Top Header -->
+            <header class="admin-header">
+                <div class="admin-header-left">
+                    <button type="button" class="admin-toggle-sidebar" id="toggleSidebarBtn">
+                        <i class="ri-menu-line"></i>
+                    </button>
+                    <div>
+                        <h2 class="admin-header-title" id="headerTitle">Dashboard Overview</h2>
+                        <span class="admin-header-subtitle" id="headerSubtitle">Real-time metrics, system volume and activity feed</span>
+                    </div>
+                </div>
+
+                <div class="admin-header-right">
+                    <div class="live-indicator-badge">
+                        <span class="live-indicator-pulse"></span>
+                        <span id="headerOnlineCount">Connecting...</span>
+                    </div>
+
+                    <div class="admin-header-actions">
+                        <button type="button" class="btn-admin btn-admin-secondary pwa-install-btn" onclick="triggerPWAInstall(event)" style="display:none;" title="Install Admin Console as PWA">
+                            <i class="ri-download-2-line"></i> Install App
+                        </button>
+                        <button type="button" class="btn-admin btn-admin-primary" onclick="openCreateUserModal()">
+                            <i class="ri-user-add-line"></i> Add User
+                        </button>
+                        <button type="button" class="btn-admin btn-admin-secondary" onclick="openCreateGroupModal()">
+                            <i class="ri-team-line"></i> New Group
+                        </button>
+                        <button type="button" class="btn-admin btn-admin-secondary btn-icon-only" title="Refresh Data" onclick="loadDashboardStats()">
+                            <i class="ri-refresh-line"></i>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Dynamic Container -->
+            <div class="admin-content">
+
+                <!-- ==============================================================================
+                     TAB 1: DASHBOARD OVERVIEW
+                     ============================================================================== -->
+                <div class="admin-tab-pane active" id="tab-dashboard">
+                    <!-- KPI Hero Grid -->
+                    <div class="stats-grid">
+                        <div class="stat-card card-primary" onclick="switchTab('users')" style="cursor:pointer;">
+                            <div class="stat-info">
+                                <h3>Total Staff Users</h3>
+                                <div class="stat-value" id="statTotalUsers">...</div>
+                                <div class="stat-subtext highlight-green">
+                                    <i class="ri-radio-button-line"></i> <span id="statOnlineUsers">0 online</span>
+                                </div>
+                            </div>
+                            <div class="stat-icon">
+                                <i class="ri-user-smile-line"></i>
+                            </div>
+                        </div>
+
+                        <div class="stat-card card-blue" onclick="switchTab('groups')" style="cursor:pointer;">
+                            <div class="stat-info">
+                                <h3>Groups & Teams</h3>
+                                <div class="stat-value" id="statTotalGroups">...</div>
+                                <div class="stat-subtext">
+                                    <span id="statTotalChats">Active channels</span>
+                                </div>
+                            </div>
+                            <div class="stat-icon">
+                                <i class="ri-team-line"></i>
+                            </div>
+                        </div>
+
+                        <div class="stat-card card-purple" onclick="switchTab('messages')" style="cursor:pointer;">
+                            <div class="stat-info">
+                                <h3>Messages Processed</h3>
+                                <div class="stat-value" id="statTotalMessages">...</div>
+                                <div class="stat-subtext highlight-green">
+                                    <span id="statTodayMessages">+0 sent today</span>
+                                </div>
+                            </div>
+                            <div class="stat-icon">
+                                <i class="ri-chat-3-line"></i>
+                            </div>
+                        </div>
+
+                        <div class="stat-card card-amber" onclick="switchTab('media')" style="cursor:pointer;">
+                            <div class="stat-info">
+                                <h3>Media Storage</h3>
+                                <div class="stat-value" id="statMediaStorage">...</div>
+                                <div class="stat-subtext">
+                                    <span id="statMediaFiles">GridFS Files</span>
+                                </div>
+                            </div>
+                            <div class="stat-icon">
+                                <i class="ri-hard-drive-2-line"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Breakdown & Activity Feed -->
+                    <div class="dashboard-grid-2col">
+                        <!-- Left: Message Composition & Directorates -->
+                        <div class="admin-card">
+                            <div class="admin-card-header">
+                                <h3 class="admin-card-title">
+                                    <i class="ri-bar-chart-box-line" style="color:var(--primary);"></i> Message Traffic Breakdown
+                                </h3>
+                                <span style="font-size:12px; color:var(--text-muted);">Real-time across all chats</span>
+                            </div>
+                            <div class="admin-card-body">
+                                <div class="breakdown-row">
+                                    <div class="breakdown-label">
+                                        <span><i class="ri-message-2-line"></i> Text Messages</span>
+                                        <span id="countText">...</span>
+                                    </div>
+                                    <div class="breakdown-bar-bg">
+                                        <div class="breakdown-bar-fill" id="barText" style="width: 0%;"></div>
+                                    </div>
+                                </div>
+
+                                <div class="breakdown-row">
+                                    <div class="breakdown-label">
+                                        <span><i class="ri-image-line"></i> Photos & Images</span>
+                                        <span id="countImage">...</span>
+                                    </div>
+                                    <div class="breakdown-bar-bg">
+                                        <div class="breakdown-bar-fill" id="barImage" style="width: 0%;"></div>
+                                    </div>
+                                </div>
+
+                                <div class="breakdown-row">
+                                    <div class="breakdown-label">
+                                        <span><i class="ri-mic-line"></i> Voice Notes & Audio</span>
+                                        <span id="countVoice">...</span>
+                                    </div>
+                                    <div class="breakdown-bar-bg">
+                                        <div class="breakdown-bar-fill" id="barVoice" style="width: 0%;"></div>
+                                    </div>
+                                </div>
+
+                                <div class="breakdown-row">
+                                    <div class="breakdown-label">
+                                        <span><i class="ri-video-line"></i> Videos</span>
+                                        <span id="countVideo">...</span>
+                                    </div>
+                                    <div class="breakdown-bar-bg">
+                                        <div class="breakdown-bar-fill" id="barVideo" style="width: 0%;"></div>
+                                    </div>
+                                </div>
+
+                                <div class="breakdown-row">
+                                    <div class="breakdown-label">
+                                        <span><i class="ri-file-line"></i> Documents & Attachments</span>
+                                        <span id="countFile">...</span>
+                                    </div>
+                                    <div class="breakdown-bar-bg">
+                                        <div class="breakdown-bar-fill" id="barFile" style="width: 0%;"></div>
+                                    </div>
+                                </div>
+
+                                <div style="margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--border-subtle);">
+                                    <h4 style="font-size:13px; font-weight:700; margin-bottom: 12px; color:var(--text-secondary);">
+                                        DIRECTORATE ENROLLMENTS
+                                    </h4>
+                                    <div class="directorates-tags" id="directoratesTagCloud">
+                                        <!-- Loaded via JS -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right: Recent Activity -->
+                        <div class="admin-card">
+                            <div class="admin-card-header">
+                                <h3 class="admin-card-title">
+                                    <i class="ri-time-line" style="color:var(--info);"></i> Recent Activity
+                                </h3>
+                                <button type="button" class="btn-admin btn-admin-secondary btn-admin-sm" onclick="loadDashboardStats()">
+                                    Refresh
+                                </button>
+                            </div>
+                            <div class="admin-card-body">
+                                <ul class="activity-list" id="recentActivityList">
+                                    <!-- Loaded via JS -->
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==============================================================================
+                     TAB 2: USER MANAGEMENT
+                     ============================================================================== -->
+                <div class="admin-tab-pane" id="tab-users">
+                    <div class="filter-bar">
+                        <div class="filter-group">
+                            <div class="search-input-wrap">
+                                <i class="ri-search-line"></i>
+                                <input type="text" id="userSearchInput" class="search-input" placeholder="Search by name, Staff ID..." onkeyup="if(event.key === 'Enter') loadUsers(1)">
+                            </div>
+
+                            <select id="userDirFilter" class="filter-select" onchange="loadUsers(1)">
+                                <option value="all">All Directorates</option>
+                            </select>
+
+                            <select id="userRoleFilter" class="filter-select" onchange="loadUsers(1)">
+                                <option value="all">All Roles</option>
+                                <option value="admin">Administrators</option>
+                                <option value="user">Regular Staff</option>
+                            </select>
+
+                            <select id="userStatusFilter" class="filter-select" onchange="loadUsers(1)">
+                                <option value="all">All Statuses</option>
+                                <option value="active">Active</option>
+                                <option value="online">Online Now</option>
+                                <option value="suspended">Suspended</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-group">
+                            <button type="button" class="btn-admin btn-admin-secondary" onclick="loadUsers(1)">
+                                <i class="ri-filter-3-line"></i> Apply Filter
+                            </button>
+                            <button type="button" class="btn-admin btn-admin-primary" onclick="openCreateUserModal()">
+                                <i class="ri-user-add-line"></i> Create New Staff
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Staff Member</th>
+                                    <th>Directorate</th>
+                                    <th>Role</th>
+                                    <th>Account Status</th>
+                                    <th>Presence</th>
+                                    <th>Registered</th>
+                                    <th style="text-align:right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
+                                <!-- Loaded via JS -->
+                            </tbody>
+                        </table>
+                        <div class="table-pagination" id="usersPagination">
+                            <!-- Pagination via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==============================================================================
+                     TAB 3: GROUPS & DIRECTORATES
+                     ============================================================================== -->
+                <div class="admin-tab-pane" id="tab-groups">
+                    <div class="filter-bar">
+                        <div class="search-input-wrap" style="width: 320px;">
+                            <i class="ri-search-line"></i>
+                            <input type="text" id="groupSearchInput" class="search-input" placeholder="Search group name or channel..." onkeyup="if(event.key === 'Enter') loadGroups()">
+                        </div>
+
+                        <div class="filter-group">
+                            <button type="button" class="btn-admin btn-admin-secondary" onclick="loadGroups()">
+                                <i class="ri-search-line"></i> Search
+                            </button>
+                            <button type="button" class="btn-admin btn-admin-primary" onclick="openCreateGroupModal()">
+                                <i class="ri-add-line"></i> Create New Group
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="groups-grid" id="groupsGridContainer">
+                        <!-- Loaded via JS -->
+                    </div>
+                </div>
+
+                <!-- ==============================================================================
+                     TAB 4: MESSAGE MODERATION
+                     ============================================================================== -->
+                <div class="admin-tab-pane" id="tab-messages">
+                    <div class="filter-bar">
+                        <div class="filter-group">
+                            <div class="search-input-wrap" style="width: 300px;">
+                                <i class="ri-search-line"></i>
+                                <input type="text" id="msgSearchInput" class="search-input" placeholder="Search message text content..." onkeyup="if(event.key === 'Enter') loadMessages(1)">
+                            </div>
+
+                            <select id="msgTypeFilter" class="filter-select" onchange="loadMessages(1)">
+                                <option value="all">All Message Types</option>
+                                <option value="text">Text Only</option>
+                                <option value="image">Images / Photos</option>
+                                <option value="audio">Voice Notes / Audio</option>
+                                <option value="video">Videos</option>
+                                <option value="file">Documents</option>
+                            </select>
+
+                            <select id="msgChatTypeFilter" class="filter-select" onchange="loadMessages(1)">
+                                <option value="all">All Chat Channels</option>
+                                <option value="group">Group Messages</option>
+                                <option value="private">Private Direct Messages</option>
+                            </select>
+                        </div>
+
+                        <button type="button" class="btn-admin btn-admin-secondary" onclick="loadMessages(1)">
+                            <i class="ri-filter-line"></i> Filter Messages
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Sender</th>
+                                    <th>Channel / Chat</th>
+                                    <th>Type</th>
+                                    <th>Message Snippet</th>
+                                    <th>Timestamp</th>
+                                    <th style="text-align:right;">Moderation</th>
+                                </tr>
+                            </thead>
+                            <tbody id="messagesTableBody">
+                                <!-- Loaded via JS -->
+                            </tbody>
+                        </table>
+                        <div class="table-pagination" id="messagesPagination">
+                            <!-- Pagination via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==============================================================================
+                     TAB 5: MEDIA & STORAGE EXPLORER
+                     ============================================================================== -->
+                <div class="admin-tab-pane" id="tab-media">
+                    <div class="filter-bar">
+                        <div class="filter-group">
+                            <div class="search-input-wrap">
+                                <i class="ri-search-line"></i>
+                                <input type="text" id="mediaSearchInput" class="search-input" placeholder="Search filename..." onkeyup="if(event.key === 'Enter') loadMedia(1)">
+                            </div>
+
+                            <select id="mediaCategoryFilter" class="filter-select" onchange="loadMedia(1)">
+                                <option value="all">All Media</option>
+                                <option value="image">Photos & Images</option>
+                                <option value="video">Videos</option>
+                                <option value="audio">Voice Notes & Audio</option>
+                                <option value="document">Documents & Files</option>
+                            </select>
+                        </div>
+
+                        <button type="button" class="btn-admin btn-admin-secondary" onclick="loadMedia(1)">
+                            <i class="ri-refresh-line"></i> Refresh Media
+                        </button>
+                    </div>
+
+                    <div class="media-grid" id="mediaGridContainer">
+                        <!-- Loaded via JS -->
+                    </div>
+
+                    <div class="table-pagination" id="mediaPagination" style="margin-top:20px; border-radius:10px;">
+                        <!-- Pagination via JS -->
+                    </div>
+                </div>
+
+                <!-- ==============================================================================
+                     TAB 6: BROADCAST ANNOUNCEMENTS
+                     ============================================================================== -->
+                <div class="admin-tab-pane" id="tab-broadcast">
+                    <div class="broadcast-container">
+                        <!-- Left: Composer -->
+                        <div class="admin-card">
+                            <div class="admin-card-header">
+                                <h3 class="admin-card-title">
+                                    <i class="ri-broadcast-fill" style="color:var(--primary);"></i> Compose System Broadcast Bulletin
+                                </h3>
+                            </div>
+                            <div class="admin-card-body">
+                                <form id="broadcastForm" onsubmit="handleBroadcastSubmit(event)">
+                                    <div class="form-group">
+                                        <label class="form-label">Announcement Title</label>
+                                        <input type="text" id="broadcastTitle" class="form-control" placeholder="e.g., Mandatory Maintenance Notice / Headquarters Directive" required oninput="updateBroadcastLivePreview()">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Target Audience</label>
+                                        <select id="broadcastTarget" class="form-control" onchange="handleBroadcastAudienceChange()">
+                                            <option value="all">All Users & Channels (System-Wide Broadcast)</option>
+                                            <option value="directorate">Specific Directorate</option>
+                                            <option value="group">Specific Team Group</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group" id="broadcastDirWrap" style="display:none;">
+                                        <label class="form-label">Select Directorate</label>
+                                        <select id="broadcastDirectorateSelect" class="form-control">
+                                            <!-- Loaded via JS -->
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group" id="broadcastGroupWrap" style="display:none;">
+                                        <label class="form-label">Select Group</label>
+                                        <select id="broadcastGroupSelect" class="form-control">
+                                            <option value="">Choose Group Channel</option>
+                                            <!-- Dynamically populated -->
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Urgency & Importance Level</label>
+                                        <input type="hidden" id="broadcastLevel" value="info">
+                                        <div class="urgency-selector">
+                                            <div class="urgency-opt active-info" data-level="info" onclick="setBroadcastLevel('info')">
+                                                <i class="ri-information-line"></i> Info Notice
+                                            </div>
+                                            <div class="urgency-opt" data-level="notice" onclick="setBroadcastLevel('notice')">
+                                                <i class="ri-checkbox-circle-line"></i> Routine Update
+                                            </div>
+                                            <div class="urgency-opt" data-level="warning" onclick="setBroadcastLevel('warning')">
+                                                <i class="ri-alert-line"></i> Warning Alert
+                                            </div>
+                                            <div class="urgency-opt" data-level="urgent" onclick="setBroadcastLevel('urgent')">
+                                                <i class="ri-error-warning-fill"></i> Urgent Directive
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Announcement Message Body</label>
+                                        <textarea id="broadcastBody" class="form-control" rows="5" placeholder="Enter the official announcement message text..." required oninput="updateBroadcastLivePreview()"></textarea>
+                                    </div>
+
+                                    <div style="text-align:right;">
+                                        <button type="submit" class="btn-admin btn-admin-primary" id="sendBroadcastBtn">
+                                            <i class="ri-send-plane-fill"></i> Send Broadcast Now
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Right: Live Preview & Dispatch History -->
+                        <div>
+                            <div class="announcement-preview-card">
+                                <h4 style="font-size:13px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); font-weight:700;">
+                                    LIVE RECIPIENT PREVIEW
+                                </h4>
+                                <div class="announcement-bubble level-info" id="previewBubble">
+                                    <h5 id="previewTitle">Important Security Update</h5>
+                                    <p id="previewBody">This is a live preview of how the announcement will look to recipients across DSA Messenger channels.</p>
+                                    <div style="font-size:11px; color:var(--text-muted); margin-top:8px;">
+                                        &bull; Issued by System Administrator
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="admin-card" style="margin-top:20px;">
+                                <div class="admin-card-header">
+                                    <h4 class="admin-card-title">
+                                        <i class="ri-history-line"></i> Previous Bulletins
+                                    </h4>
+                                </div>
+                                <div class="admin-card-body">
+                                    <ul class="activity-list" id="broadcastHistoryList">
+                                        <!-- Loaded via JS -->
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==============================================================================
+                     TAB 7: SYSTEM & SECURITY HEALTH
+                     ============================================================================== -->
+                <div class="admin-tab-pane" id="tab-system">
+                    <div class="dashboard-grid-2col">
+                        <div class="admin-card">
+                            <div class="admin-card-header">
+                                <h3 class="admin-card-title">
+                                    <i class="ri-server-line" style="color:var(--primary);"></i> Infrastructure Health
+                                </h3>
+                                <button type="button" class="btn-admin btn-admin-secondary btn-admin-sm" onclick="loadSystemHealth()">
+                                    Refresh Status
+                                </button>
+                            </div>
+                            <div class="admin-card-body">
+                                <div style="display:flex; flex-direction:column; gap:16px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:12px; border-bottom:1px solid var(--border-subtle);">
+                                        <span style="font-weight:600; color:var(--text-secondary);">MongoDB Cluster Connection</span>
+                                        <span class="badge badge-active" id="sysDbStatus">Healthy / Connected</span>
+                                    </div>
+                                    <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:12px; border-bottom:1px solid var(--border-subtle);">
+                                        <span style="font-weight:600; color:var(--text-secondary);">Active Database Name</span>
+                                        <strong id="sysDbName" style="color:var(--text-primary);">chatDatabase</strong>
+                                    </div>
+                                    <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:12px; border-bottom:1px solid var(--border-subtle);">
+                                        <span style="font-weight:600; color:var(--text-secondary);">Web Push (VAPID) Integration</span>
+                                        <span id="sysVapidBadge" class="badge badge-active">Checking...</span>
+                                    </div>
+                                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                                        <span style="font-weight:600; color:var(--text-secondary);">Server Synchronization Time</span>
+                                        <span id="sysServerTime" style="font-size:12.5px; color:var(--text-muted);">...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="admin-card">
+                            <div class="admin-card-header">
+                                <h3 class="admin-card-title">
+                                    <i class="ri-database-2-line" style="color:var(--info);"></i> Database Collection Counts
+                                </h3>
+                            </div>
+                            <div class="admin-card-body">
+                                <div style="display:flex; flex-direction:column; gap:12px;">
+                                    <div style="display:flex; justify-content:space-between; font-size:13px;">
+                                        <span>Users Collection</span>
+                                        <strong id="colUsers">0</strong>
+                                    </div>
+                                    <div style="display:flex; justify-content:space-between; font-size:13px;">
+                                        <span>Groups Collection</span>
+                                        <strong id="colGroups">0</strong>
+                                    </div>
+                                    <div style="display:flex; justify-content:space-between; font-size:13px;">
+                                        <span>Messages Collection</span>
+                                        <strong id="colMessages">0</strong>
+                                    </div>
+                                    <div style="display:flex; justify-content:space-between; font-size:13px;">
+                                        <span>Private Direct Chats</span>
+                                        <strong id="colPrivateChats">0</strong>
+                                    </div>
+                                    <div style="display:flex; justify-content:space-between; font-size:13px;">
+                                        <span>GridFS Storage Files</span>
+                                        <strong id="colFiles">0</strong>
+                                    </div>
+                                    <div style="display:flex; justify-content:space-between; font-size:13px;">
+                                        <span>System Bulletins</span>
+                                        <strong id="colAnnouncements">0</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- ==============================================================================
+         MODALS
+         ============================================================================== -->
+
+    <!-- CREATE USER MODAL -->
+    <div class="admin-modal-overlay" id="createUserModal">
+        <div class="admin-modal">
+            <div class="admin-modal-header">
+                <h3 class="admin-modal-title"><i class="ri-user-add-line"></i> Enroll New Staff Member</h3>
+                <button type="button" class="admin-modal-close" onclick="closeModal('createUserModal')"><i class="ri-close-line"></i></button>
+            </div>
+            <form id="createUserForm" onsubmit="handleCreateUserSubmit(event)">
+                <div class="admin-modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Staff ID *</label>
+                        <input type="text" name="staffid" class="form-control" placeholder="e.g. DSA/042, N/108" required>
+                    </div>
+                    <div style="display:flex; gap:12px;">
+                        <div class="form-group" style="flex:1;">
+                            <label class="form-label">First Name *</label>
+                            <input type="text" name="firstname" class="form-control" required>
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label class="form-label">Last Name *</label>
+                            <input type="text" name="lastname" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Directorate *</label>
+                        <select name="directorate" id="userFormDirectorate" class="form-control" required>
+                            <!-- Options via JS -->
+                        </select>
+                    </div>
+                    <div style="display:flex; gap:12px;">
+                        <div class="form-group" style="flex:1;">
+                            <label class="form-label">Initial Role</label>
+                            <select name="role" class="form-control">
+                                <option value="user">Regular Staff</option>
+                                <option value="admin">Administrator</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-control">
+                                <option value="active">Active</option>
+                                <option value="suspended">Suspended</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Temporary Password *</label>
+                        <input type="password" name="password" class="form-control" placeholder="Minimum 4 characters" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Profile Photo (Optional)</label>
+                        <input type="file" name="avatar" class="form-control" accept="image/*">
+                    </div>
+                </div>
+                <div class="admin-modal-footer">
+                    <button type="button" class="btn-admin btn-admin-secondary" onclick="closeModal('createUserModal')">Cancel</button>
+                    <button type="submit" class="btn-admin btn-admin-primary">Create User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- EDIT USER MODAL -->
+    <div class="admin-modal-overlay" id="editUserModal">
+        <div class="admin-modal">
+            <div class="admin-modal-header">
+                <h3 class="admin-modal-title"><i class="ri-edit-line"></i> Edit Staff Account & Roles</h3>
+                <button type="button" class="admin-modal-close" onclick="closeModal('editUserModal')"><i class="ri-close-line"></i></button>
+            </div>
+            <form id="editUserForm" onsubmit="handleEditUserSubmit(event)">
+                <input type="hidden" id="editUserId">
+                <div class="admin-modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Staff ID</label>
+                        <input type="text" id="editUserStaffId" class="form-control" required>
+                    </div>
+                    <div style="display:flex; gap:12px;">
+                        <div class="form-group" style="flex:1;">
+                            <label class="form-label">First Name</label>
+                            <input type="text" id="editUserFirstname" class="form-control" required>
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label class="form-label">Last Name</label>
+                            <input type="text" id="editUserLastname" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Directorate</label>
+                        <select id="editUserDirectorate" class="form-control" required>
+                            <!-- Options via JS -->
+                        </select>
+                    </div>
+                    <div style="display:flex; gap:12px;">
+                        <div class="form-group" style="flex:1;">
+                            <label class="form-label">Role</label>
+                            <select id="editUserRole" class="form-control">
+                                <option value="user">Regular Staff</option>
+                                <option value="admin">Administrator</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label class="form-label">Account Status</label>
+                            <select id="editUserStatus" class="form-control">
+                                <option value="active">Active</option>
+                                <option value="suspended">Suspended</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="admin-modal-footer">
+                    <button type="button" class="btn-admin btn-admin-secondary" onclick="closeModal('editUserModal')">Cancel</button>
+                    <button type="submit" class="btn-admin btn-admin-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- VIEW USER DETAILS MODAL -->
+    <div class="admin-modal-overlay" id="viewUserModal">
+        <div class="admin-modal">
+            <div class="admin-modal-header">
+                <h3 class="admin-modal-title"><i class="ri-user-line"></i> Staff Member Profile</h3>
+                <button type="button" class="admin-modal-close" onclick="closeModal('viewUserModal')"><i class="ri-close-line"></i></button>
+            </div>
+            <div class="admin-modal-body">
+                <div style="display:flex; align-items:center; gap:16px; margin-bottom:20px; padding-bottom:16px; border-bottom:1px solid var(--border-subtle);">
+                    <img id="viewUserAvatar" src="" alt="Avatar" style="width:64px; height:64px; border-radius:50%; object-fit:cover; border:2px solid var(--primary);" onerror="this.src='/static/images/default-profile.png'">
+                    <div>
+                        <h4 id="viewUserFullname" style="font-size:17px; font-weight:700;">User Name</h4>
+                        <span id="viewUserStaffId" style="font-size:13px; color:var(--text-muted);">Staff ID</span>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:16px; font-size:13px;">
+                    <div><span style="color:var(--text-muted);">Directorate:</span> <strong id="viewUserDirectorate"></strong></div>
+                    <div><span style="color:var(--text-muted);">Role:</span> <strong id="viewUserRole"></strong></div>
+                    <div><span style="color:var(--text-muted);">Status:</span> <strong id="viewUserStatus"></strong></div>
+                    <div><span style="color:var(--text-muted);">Presence:</span> <strong id="viewUserOnline"></strong></div>
+                    <div><span style="color:var(--text-muted);">Last Seen:</span> <strong id="viewUserLastSeen"></strong></div>
+                    <div><span style="color:var(--text-muted);">Created:</span> <strong id="viewUserCreatedAt"></strong></div>
+                </div>
+
+                <div style="padding:12px; background:var(--body-bg); border-radius:8px; margin-bottom:16px; font-size:13px;">
+                    <i class="ri-chat-3-line" style="color:var(--primary);"></i> <strong id="viewUserMsgCount">0 messages</strong>
+                </div>
+
+                <div>
+                    <h5 style="font-size:12px; text-transform:uppercase; color:var(--text-muted); font-weight:700; margin-bottom:8px;">Assigned Groups & Teams</h5>
+                    <div id="viewUserGroupsList" style="display:flex; flex-wrap:wrap; gap:6px;">
+                        <!-- JS -->
+                    </div>
+                </div>
+            </div>
+            <div class="admin-modal-footer">
+                <button type="button" class="btn-admin btn-admin-secondary" onclick="closeModal('viewUserModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- RESET PASSWORD MODAL -->
+    <div class="admin-modal-overlay" id="resetPasswordModal">
+        <div class="admin-modal">
+            <div class="admin-modal-header">
+                <h3 class="admin-modal-title"><i class="ri-key-line"></i> Reset Password</h3>
+                <button type="button" class="admin-modal-close" onclick="closeModal('resetPasswordModal')"><i class="ri-close-line"></i></button>
+            </div>
+            <form onsubmit="handleResetPasswordSubmit(event)">
+                <input type="hidden" id="resetPasswordUserId">
+                <div class="admin-modal-body">
+                    <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px;">
+                        Assign a new password for <strong id="resetPasswordUserName">...</strong>:
+                    </p>
+                    <div class="form-group">
+                        <label class="form-label">New Password *</label>
+                        <input type="password" id="resetPasswordInput" class="form-control" placeholder="Minimum 4 characters" required minlength="4">
+                    </div>
+                </div>
+                <div class="admin-modal-footer">
+                    <button type="button" class="btn-admin btn-admin-secondary" onclick="closeModal('resetPasswordModal')">Cancel</button>
+                    <button type="submit" class="btn-admin btn-admin-primary">Update Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- CREATE GROUP MODAL -->
+    <div class="admin-modal-overlay" id="createGroupModal">
+        <div class="admin-modal">
+            <div class="admin-modal-header">
+                <h3 class="admin-modal-title"><i class="ri-team-line"></i> Create New Team Channel</h3>
+                <button type="button" class="admin-modal-close" onclick="closeModal('createGroupModal')"><i class="ri-close-line"></i></button>
+            </div>
+            <form id="createGroupForm" onsubmit="handleCreateGroupSubmit(event)">
+                <div class="admin-modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Group Name *</label>
+                        <input type="text" name="name" class="form-control" placeholder="e.g. CYBER OPS, JOINT LOGISTICS" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="3" placeholder="Group operational mandate and guidelines..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Group Icon / Avatar (Optional)</label>
+                        <input type="file" name="image" class="form-control" accept="image/*">
+                    </div>
+                </div>
+                <div class="admin-modal-footer">
+                    <button type="button" class="btn-admin btn-admin-secondary" onclick="closeModal('createGroupModal')">Cancel</button>
+                    <button type="submit" class="btn-admin btn-admin-primary">Create Channel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- EDIT GROUP MODAL -->
+    <div class="admin-modal-overlay" id="editGroupModal">
+        <div class="admin-modal">
+            <div class="admin-modal-header">
+                <h3 class="admin-modal-title"><i class="ri-edit-line"></i> Edit Group Information</h3>
+                <button type="button" class="admin-modal-close" onclick="closeModal('editGroupModal')"><i class="ri-close-line"></i></button>
+            </div>
+            <form id="editGroupForm" onsubmit="handleEditGroupSubmit(event)">
+                <input type="hidden" id="editGroupId">
+                <div class="admin-modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Group Name *</label>
+                        <input type="text" name="name" id="editGroupName" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" id="editGroupDesc" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Replace Avatar (Optional)</label>
+                        <input type="file" name="image" class="form-control" accept="image/*">
+                    </div>
+                </div>
+                <div class="admin-modal-footer">
+                    <button type="button" class="btn-admin btn-admin-secondary" onclick="closeModal('editGroupModal')">Cancel</button>
+                    <button type="submit" class="btn-admin btn-admin-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MANAGE GROUP MEMBERS MODAL -->
+    <div class="admin-modal-overlay" id="manageMembersModal">
+        <div class="admin-modal modal-lg">
+            <div class="admin-modal-header">
+                <h3 class="admin-modal-title">
+                    <i class="ri-group-line"></i> Members: <span id="manageMembersGroupName">...</span>
+                </h3>
+                <button type="button" class="admin-modal-close" onclick="closeModal('manageMembersModal')"><i class="ri-close-line"></i></button>
+            </div>
+            <div class="admin-modal-body">
+                <!-- Add Member Form -->
+                <form onsubmit="handleAddGroupMemberSubmit(event)" style="display:flex; gap:8px; margin-bottom:18px;">
+                    <input type="hidden" id="manageMembersGroupId">
+                    <input type="text" id="addMemberStaffId" class="form-control" placeholder="Search staff by Name or Staff ID to add..." required style="flex:1;">
+                    <button type="submit" class="btn-admin btn-admin-primary" style="flex-shrink:0;">
+                        <i class="ri-user-add-line"></i> Add Member
+                    </button>
+                </form>
+
+                <div class="table-responsive" style="max-height: 380px;">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Staff Member</th>
+                                <th>Channel Role</th>
+                                <th>Joined</th>
+                                <th style="text-align:right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="groupMembersTableBody">
+                            <!-- JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="admin-modal-footer">
+                <button type="button" class="btn-admin btn-admin-secondary" onclick="closeModal('manageMembersModal')">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MEDIA VIEWER MODAL -->
+    <div class="admin-modal-overlay" id="mediaViewerModal">
+        <div class="admin-modal modal-lg">
+            <div class="admin-modal-header">
+                <h3 class="admin-modal-title" id="mediaViewerTitle">File Preview</h3>
+                <button type="button" class="admin-modal-close" onclick="closeModal('mediaViewerModal')"><i class="ri-close-line"></i></button>
+            </div>
+            <div class="admin-modal-body" id="mediaViewerContainer" style="text-align:center; padding: 20px;">
+                <!-- JS Preview -->
+            </div>
+            <div class="admin-modal-footer">
+                <button type="button" class="btn-admin btn-admin-secondary" onclick="closeModal('mediaViewerModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONFIRMATION DIALOG MODAL -->
+    <div class="admin-modal-overlay" id="confirmModal">
+        <div class="admin-modal" style="max-width: 440px;">
+            <div class="admin-modal-header">
+                <h3 class="admin-modal-title" style="color:var(--danger);" id="confirmModalTitle">Confirm Action</h3>
+                <button type="button" class="admin-modal-close" onclick="closeModal('confirmModal')"><i class="ri-close-line"></i></button>
+            </div>
+            <div class="admin-modal-body">
+                <p id="confirmModalBody" style="font-size:13.5px; color:var(--text-secondary); line-height:1.5;">Are you sure you want to proceed?</p>
+            </div>
+            <div class="admin-modal-footer">
+                <button type="button" class="btn-admin btn-admin-secondary" onclick="closeModal('confirmModal')">Cancel</button>
+                <button type="button" class="btn-admin btn-admin-danger" onclick="executeConfirmAction()">Proceed</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='admin.js') }}?v=2"></script>
+</body>
+
+</html>

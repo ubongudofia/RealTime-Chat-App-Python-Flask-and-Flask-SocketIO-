@@ -1,0 +1,604 @@
+[2025-06-11 14:51:54 +0100] [3112] [INFO] Starting gunicorn 23.0.0
+[2025-06-11 14:51:54 +0100] [3112] [INFO] Listening at: http://0.0.0.0:5005 (3112)
+[2025-06-11 14:51:54 +0100] [3112] [INFO] Using worker: sync
+[2025-06-11 14:51:54 +0100] [3113] [INFO] Booting worker with pid: 3113
+[2025-06-11 14:52:37 +0100] [3112] [INFO] Handling signal: int
+[2025-06-11 14:52:37 +0100] [3113] [INFO] Worker exiting (pid: 3113)
+Exception ignored in atexit callback: <function _shutdown_resources at 0x75310a5d0940>
+Traceback (most recent call last):
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/pymongo/synchronous/monitor.py", line 538, in _shutdown_resources
+    shutdown()
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/pymongo/periodic_executor.py", line 291, in _shutdown_executors
+    executor.join(1)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/pymongo/periodic_executor.py", line 208, in join
+    self._thread.join(timeout)
+  File "/usr/lib/python3.10/threading.py", line 1100, in join
+    self._wait_for_tstate_lock(timeout=max(timeout, 0))
+  File "/usr/lib/python3.10/threading.py", line 1116, in _wait_for_tstate_lock
+    if lock.acquire(block, timeout):
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 199, in handle_quit
+    sys.exit(0)
+SystemExit: 0
+[2025-06-11 14:52:38 +0100] [3112] [INFO] Shutting down: Master
+[2025-06-11 14:52:49 +0100] [3165] [INFO] Starting gunicorn 23.0.0
+[2025-06-11 14:52:49 +0100] [3165] [ERROR] connection to ('0.0.0.0', 80) failed: [Errno 13] Permission denied
+[2025-06-11 14:52:50 +0100] [3165] [ERROR] connection to ('0.0.0.0', 80) failed: [Errno 13] Permission denied
+[2025-06-11 14:52:51 +0100] [3165] [ERROR] connection to ('0.0.0.0', 80) failed: [Errno 13] Permission denied
+[2025-06-11 14:52:52 +0100] [3165] [ERROR] connection to ('0.0.0.0', 80) failed: [Errno 13] Permission denied
+[2025-06-11 14:52:53 +0100] [3165] [ERROR] connection to ('0.0.0.0', 80) failed: [Errno 13] Permission denied
+[2025-06-11 14:52:54 +0100] [3165] [ERROR] Can't connect to ('0.0.0.0', 80)
+[2025-06-11 14:56:04 +0100] [3513] [INFO] Starting gunicorn 23.0.0
+[2025-06-11 14:56:04 +0100] [3513] [INFO] Listening at: http://0.0.0.0:5005 (3513)
+[2025-06-11 14:56:04 +0100] [3513] [INFO] Using worker: sync
+[2025-06-11 14:56:04 +0100] [3514] [INFO] Booting worker with pid: 3514
+[2025-06-11 15:00:02 +0100] [3513] [CRITICAL] WORKER TIMEOUT (pid:3514)
+[2025-06-11 15:00:02 +0100] [3514] [ERROR] Error handling request /socket.io/?EIO=4&transport=websocket&sid=GGpycgMJRlK0A-4lAAAA
+Traceback (most recent call last):
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/sync.py", line 134, in handle
+    self.handle_request(listener, req, client, addr)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/sync.py", line 177, in handle_request
+    respiter = self.wsgi(environ, resp.start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask_socketio/__init__.py", line 42, in __call__
+    return super().__call__(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/middleware.py", line 63, in __call__
+    return self.engineio_app.handle_request(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/socketio/server.py", line 434, in handle_request
+    return self.eio.handle_request(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/server.py", line 286, in handle_request
+    packets = socket.handle_get_request(
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 92, in handle_get_request
+    return getattr(self, '_upgrade_' + transport)(environ,
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 151, in _upgrade_websocket
+    return ws(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/async_drivers/eventlet.py", line 42, in __call__
+    return super().__call__(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 141, in __call__
+    self.handler(ws)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 183, in _websocket_handler
+    pkt = websocket_wait()
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 156, in websocket_wait
+    data = ws.wait()
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 825, in wait
+    for i in self.iterator:
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 666, in _iter_frames
+    message = self._recv_frame(message=fragmented_message)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 692, in _recv_frame
+    header = recv(2)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 594, in _get_bytes
+    d = self.socket.recv(numbytes - len(data))
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 204, in handle_abort
+    sys.exit(1)
+SystemExit: 1
+[2025-06-11 15:00:02 +0100] [3514] [INFO] Worker exiting (pid: 3514)
+Received data: {'staffid': 'DSA/CIV/0245', 'new_password': 'qwerty123', 'confirm_password': 'qwerty123'}
+Unread Count - Private: {'680e3df2035f3805393eec8b': 0, '680f8b991fde508555e1357c': 0, '682c80ad147fba491d39641c': 0}
+Unread Count - Group: {'67c9082232874336da385fd5': 0, '67c9082332874336da385fda': 0}
+Fetching profile picture for user: 67ff8606230574bd2ea0eea5
+User data fetched: {'_id': ObjectId('67ff8606230574bd2ea0eea5'), 'image': '67ff8606230574bd2ea0eea3'}
+Image ID found: 67ff8606230574bd2ea0eea3
+Image successfully retrieved from GridFS
+Unread Count - Private: {'680e3df2035f3805393eec8b': 0, '680f8b991fde508555e1357c': 0, '682c80ad147fba491d39641c': 0}
+Unread Count - Group: {'67c9082232874336da385fd5': 0, '67c9082332874336da385fda': 0}
+Fetching profile picture for user: 67ff8606230574bd2ea0eea5
+User data fetched: {'_id': ObjectId('67ff8606230574bd2ea0eea5'), 'image': '67ff8606230574bd2ea0eea3'}
+Image ID found: 67ff8606230574bd2ea0eea3
+Image successfully retrieved from GridFS
+Unread Count - Private: {'680e3df2035f3805393eec8b': 0, '680f8b991fde508555e1357c': 0, '682c80ad147fba491d39641c': 0}
+Unread Count - Group: {'67c9082232874336da385fd5': 0, '67c9082332874336da385fda': 0}
+Fetching profile picture for user: 67ff8606230574bd2ea0eea5
+User data fetched: {'_id': ObjectId('67ff8606230574bd2ea0eea5'), 'image': '67ff8606230574bd2ea0eea3'}
+Image ID found: 67ff8606230574bd2ea0eea3
+Image successfully retrieved from GridFS
+[2025-06-11 15:00:03 +0100] [3772] [INFO] Booting worker with pid: 3772
+Invalid session GGpycgMJRlK0A-4lAAAA (further occurrences of this error will be logged with level INFO)
+[2025-06-11 15:00:34 +0100] [3513] [CRITICAL] WORKER TIMEOUT (pid:3772)
+[2025-06-11 15:00:34 +0100] [3772] [ERROR] Error handling request /socket.io/?EIO=4&transport=websocket&sid=bFFXfHL_qWoGZieCAAAA
+Traceback (most recent call last):
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/sync.py", line 134, in handle
+    self.handle_request(listener, req, client, addr)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/sync.py", line 177, in handle_request
+    respiter = self.wsgi(environ, resp.start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask_socketio/__init__.py", line 42, in __call__
+    return super().__call__(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/middleware.py", line 63, in __call__
+    return self.engineio_app.handle_request(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/socketio/server.py", line 434, in handle_request
+    return self.eio.handle_request(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/server.py", line 286, in handle_request
+    packets = socket.handle_get_request(
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 92, in handle_get_request
+    return getattr(self, '_upgrade_' + transport)(environ,
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 151, in _upgrade_websocket
+    return ws(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/async_drivers/eventlet.py", line 42, in __call__
+    return super().__call__(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 141, in __call__
+    self.handler(ws)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 183, in _websocket_handler
+    pkt = websocket_wait()
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 156, in websocket_wait
+    data = ws.wait()
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 825, in wait
+    for i in self.iterator:
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 666, in _iter_frames
+    message = self._recv_frame(message=fragmented_message)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 692, in _recv_frame
+    header = recv(2)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 594, in _get_bytes
+    d = self.socket.recv(numbytes - len(data))
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 204, in handle_abort
+    sys.exit(1)
+SystemExit: 1
+[2025-06-11 15:00:34 +0100] [3772] [INFO] Worker exiting (pid: 3772)
+Unread Count - Private: {'680e3df2035f3805393eec8b': 0, '680f8b991fde508555e1357c': 0, '682c80ad147fba491d39641c': 0}
+Unread Count - Group: {'67c9082232874336da385fd5': 0, '67c9082332874336da385fda': 0}
+Fetching profile picture for user: 67ff8606230574bd2ea0eea5
+User data fetched: {'_id': ObjectId('67ff8606230574bd2ea0eea5'), 'image': '67ff8606230574bd2ea0eea3'}
+Image ID found: 67ff8606230574bd2ea0eea3
+Image successfully retrieved from GridFS
+[2025-06-11 15:00:34 +0100] [3861] [INFO] Booting worker with pid: 3861
+Invalid session bFFXfHL_qWoGZieCAAAA (further occurrences of this error will be logged with level INFO)
+[2025-06-11 15:00:54 +0100] [3513] [INFO] Handling signal: int
+[2025-06-11 15:00:54 +0100] [3861] [ERROR] Error handling request /socket.io/?EIO=4&transport=websocket&sid=KqEINaZYR9lb_xYdAAAA
+Traceback (most recent call last):
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/sync.py", line 134, in handle
+    self.handle_request(listener, req, client, addr)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/sync.py", line 177, in handle_request
+    respiter = self.wsgi(environ, resp.start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask_socketio/__init__.py", line 42, in __call__
+    return super().__call__(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/middleware.py", line 63, in __call__
+    return self.engineio_app.handle_request(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/socketio/server.py", line 434, in handle_request
+    return self.eio.handle_request(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/server.py", line 286, in handle_request
+    packets = socket.handle_get_request(
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 92, in handle_get_request
+    return getattr(self, '_upgrade_' + transport)(environ,
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 151, in _upgrade_websocket
+    return ws(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/async_drivers/eventlet.py", line 42, in __call__
+    return super().__call__(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 141, in __call__
+    self.handler(ws)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 183, in _websocket_handler
+    pkt = websocket_wait()
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 156, in websocket_wait
+    data = ws.wait()
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 825, in wait
+    for i in self.iterator:
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 666, in _iter_frames
+    message = self._recv_frame(message=fragmented_message)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 692, in _recv_frame
+    header = recv(2)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 594, in _get_bytes
+    d = self.socket.recv(numbytes - len(data))
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 198, in handle_quit
+    time.sleep(0.1)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 199, in handle_quit
+    sys.exit(0)
+SystemExit: 0
+[2025-06-11 15:00:54 +0100] [3861] [INFO] Worker exiting (pid: 3861)
+[2025-06-11 15:00:55 +0100] [3513] [INFO] Shutting down: Master
+[2025-06-11 15:04:22 +0100] [4045] [INFO] Starting gunicorn 23.0.0
+[2025-06-11 15:04:22 +0100] [4045] [ERROR] connection to ('0.0.0.0', 80) failed: [Errno 13] Permission denied
+[2025-06-11 15:04:23 +0100] [4045] [ERROR] connection to ('0.0.0.0', 80) failed: [Errno 13] Permission denied
+[2025-06-11 15:04:24 +0100] [4045] [ERROR] connection to ('0.0.0.0', 80) failed: [Errno 13] Permission denied
+[2025-06-11 15:04:26 +0100] [4045] [ERROR] connection to ('0.0.0.0', 80) failed: [Errno 13] Permission denied
+[2025-06-11 15:04:27 +0100] [4045] [ERROR] connection to ('0.0.0.0', 80) failed: [Errno 13] Permission denied
+[2025-06-11 15:04:28 +0100] [4045] [ERROR] Can't connect to ('0.0.0.0', 80)
+[2025-06-11 15:08:13 +0100] [4201] [INFO] Starting gunicorn 23.0.0
+[2025-06-11 15:08:13 +0100] [4201] [INFO] Listening at: http://0.0.0.0:5005 (4201)
+[2025-06-11 15:08:13 +0100] [4201] [INFO] Using worker: sync
+[2025-06-11 15:08:13 +0100] [4202] [INFO] Booting worker with pid: 4202
+[2025-06-11 15:10:51 +0100] [4201] [CRITICAL] WORKER TIMEOUT (pid:4202)
+[2025-06-11 15:10:51 +0100] [4202] [ERROR] Error handling request /socket.io/?EIO=4&transport=websocket&sid=rN8WYCvgM1hIHezzAAAA
+Traceback (most recent call last):
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/sync.py", line 134, in handle
+    self.handle_request(listener, req, client, addr)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/sync.py", line 177, in handle_request
+    respiter = self.wsgi(environ, resp.start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask_socketio/__init__.py", line 42, in __call__
+    return super().__call__(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/middleware.py", line 63, in __call__
+    return self.engineio_app.handle_request(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/socketio/server.py", line 434, in handle_request
+    return self.eio.handle_request(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/server.py", line 286, in handle_request
+    packets = socket.handle_get_request(
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 92, in handle_get_request
+    return getattr(self, '_upgrade_' + transport)(environ,
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 151, in _upgrade_websocket
+    return ws(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/async_drivers/eventlet.py", line 42, in __call__
+    return super().__call__(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 141, in __call__
+    self.handler(ws)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 183, in _websocket_handler
+    pkt = websocket_wait()
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 156, in websocket_wait
+    data = ws.wait()
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 825, in wait
+    for i in self.iterator:
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 666, in _iter_frames
+    message = self._recv_frame(message=fragmented_message)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 692, in _recv_frame
+    header = recv(2)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 594, in _get_bytes
+    d = self.socket.recv(numbytes - len(data))
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 204, in handle_abort
+    sys.exit(1)
+SystemExit: 1
+[2025-06-11 15:10:51 +0100] [4202] [INFO] Worker exiting (pid: 4202)
+Unread Count - Private: {'680e3df2035f3805393eec8b': 0, '680f8b991fde508555e1357c': 0, '682c80ad147fba491d39641c': 0}
+Unread Count - Group: {'67c9082232874336da385fd5': 0, '67c9082332874336da385fda': 0}
+Fetching profile picture for user: 67ff8606230574bd2ea0eea5
+User data fetched: {'_id': ObjectId('67ff8606230574bd2ea0eea5'), 'image': '67ff8606230574bd2ea0eea3'}
+Image ID found: 67ff8606230574bd2ea0eea3
+Image successfully retrieved from GridFS
+[2025-06-11 15:10:51 +0100] [4294] [INFO] Booting worker with pid: 4294
+Invalid session rN8WYCvgM1hIHezzAAAA (further occurrences of this error will be logged with level INFO)
+[2025-06-11 15:11:22 +0100] [4201] [CRITICAL] WORKER TIMEOUT (pid:4294)
+[2025-06-11 15:11:22 +0100] [4294] [ERROR] Error handling request /socket.io/?EIO=4&transport=websocket&sid=LyK4NqeM_29MRKqNAAAA
+Traceback (most recent call last):
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/sync.py", line 134, in handle
+    self.handle_request(listener, req, client, addr)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/sync.py", line 177, in handle_request
+    respiter = self.wsgi(environ, resp.start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask_socketio/__init__.py", line 42, in __call__
+    return super().__call__(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/middleware.py", line 63, in __call__
+    return self.engineio_app.handle_request(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/socketio/server.py", line 434, in handle_request
+    return self.eio.handle_request(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/server.py", line 286, in handle_request
+    packets = socket.handle_get_request(
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 92, in handle_get_request
+    return getattr(self, '_upgrade_' + transport)(environ,
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 151, in _upgrade_websocket
+    return ws(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/async_drivers/eventlet.py", line 42, in __call__
+    return super().__call__(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 141, in __call__
+    self.handler(ws)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 183, in _websocket_handler
+    pkt = websocket_wait()
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 156, in websocket_wait
+    data = ws.wait()
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 825, in wait
+    for i in self.iterator:
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 666, in _iter_frames
+    message = self._recv_frame(message=fragmented_message)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 692, in _recv_frame
+    header = recv(2)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 594, in _get_bytes
+    d = self.socket.recv(numbytes - len(data))
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 204, in handle_abort
+    sys.exit(1)
+SystemExit: 1
+[2025-06-11 15:11:22 +0100] [4294] [INFO] Worker exiting (pid: 4294)
+[2025-06-11 15:11:23 +0100] [4372] [INFO] Booting worker with pid: 4372
+Invalid session LyK4NqeM_29MRKqNAAAA (further occurrences of this error will be logged with level INFO)
+[2025-06-11 15:11:55 +0100] [4201] [CRITICAL] WORKER TIMEOUT (pid:4372)
+[2025-06-11 15:11:55 +0100] [4372] [ERROR] Error handling request /socket.io/?EIO=4&transport=websocket&sid=ED1o0ZLoI_pR5eUiAAAA
+Traceback (most recent call last):
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/sync.py", line 134, in handle
+    self.handle_request(listener, req, client, addr)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/sync.py", line 177, in handle_request
+    respiter = self.wsgi(environ, resp.start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask_socketio/__init__.py", line 42, in __call__
+    return super().__call__(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/middleware.py", line 63, in __call__
+    return self.engineio_app.handle_request(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/socketio/server.py", line 434, in handle_request
+    return self.eio.handle_request(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/server.py", line 286, in handle_request
+    packets = socket.handle_get_request(
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 92, in handle_get_request
+    return getattr(self, '_upgrade_' + transport)(environ,
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 151, in _upgrade_websocket
+    return ws(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/async_drivers/eventlet.py", line 42, in __call__
+    return super().__call__(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 141, in __call__
+    self.handler(ws)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 183, in _websocket_handler
+    pkt = websocket_wait()
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 156, in websocket_wait
+    data = ws.wait()
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 825, in wait
+    for i in self.iterator:
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 666, in _iter_frames
+    message = self._recv_frame(message=fragmented_message)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 692, in _recv_frame
+    header = recv(2)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 594, in _get_bytes
+    d = self.socket.recv(numbytes - len(data))
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 204, in handle_abort
+    sys.exit(1)
+SystemExit: 1
+[2025-06-11 15:11:55 +0100] [4372] [INFO] Worker exiting (pid: 4372)
+[2025-06-11 15:11:56 +0100] [4423] [INFO] Booting worker with pid: 4423
+Invalid session ED1o0ZLoI_pR5eUiAAAA (further occurrences of this error will be logged with level INFO)
+[2025-06-11 15:12:28 +0100] [4201] [CRITICAL] WORKER TIMEOUT (pid:4423)
+[2025-06-11 15:12:28 +0100] [4423] [ERROR] Error handling request /socket.io/?EIO=4&transport=websocket&sid=h4aqWGshNyxK-0iCAAAA
+Traceback (most recent call last):
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/sync.py", line 134, in handle
+    self.handle_request(listener, req, client, addr)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/sync.py", line 177, in handle_request
+    respiter = self.wsgi(environ, resp.start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask_socketio/__init__.py", line 42, in __call__
+    return super().__call__(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/middleware.py", line 63, in __call__
+    return self.engineio_app.handle_request(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/socketio/server.py", line 434, in handle_request
+    return self.eio.handle_request(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/server.py", line 286, in handle_request
+    packets = socket.handle_get_request(
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 92, in handle_get_request
+    return getattr(self, '_upgrade_' + transport)(environ,
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 151, in _upgrade_websocket
+    return ws(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/async_drivers/eventlet.py", line 42, in __call__
+    return super().__call__(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 141, in __call__
+    self.handler(ws)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 183, in _websocket_handler
+    pkt = websocket_wait()
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 156, in websocket_wait
+    data = ws.wait()
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 825, in wait
+    for i in self.iterator:
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 666, in _iter_frames
+    message = self._recv_frame(message=fragmented_message)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 692, in _recv_frame
+    header = recv(2)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 594, in _get_bytes
+    d = self.socket.recv(numbytes - len(data))
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 204, in handle_abort
+    sys.exit(1)
+SystemExit: 1
+[2025-06-11 15:12:28 +0100] [4423] [INFO] Worker exiting (pid: 4423)
+[2025-06-11 15:12:28 +0100] [4488] [INFO] Booting worker with pid: 4488
+Invalid session h4aqWGshNyxK-0iCAAAA (further occurrences of this error will be logged with level INFO)
+[2025-06-11 15:13:00 +0100] [4201] [CRITICAL] WORKER TIMEOUT (pid:4488)
+[2025-06-11 15:13:00 +0100] [4488] [ERROR] Error handling request /socket.io/?EIO=4&transport=websocket&sid=Z_ypkPkXDdi_hdiaAAAA
+Traceback (most recent call last):
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/sync.py", line 134, in handle
+    self.handle_request(listener, req, client, addr)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/sync.py", line 177, in handle_request
+    respiter = self.wsgi(environ, resp.start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask_socketio/__init__.py", line 42, in __call__
+    return super().__call__(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/middleware.py", line 63, in __call__
+    return self.engineio_app.handle_request(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/socketio/server.py", line 434, in handle_request
+    return self.eio.handle_request(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/server.py", line 286, in handle_request
+    packets = socket.handle_get_request(
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 92, in handle_get_request
+    return getattr(self, '_upgrade_' + transport)(environ,
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 151, in _upgrade_websocket
+    return ws(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/async_drivers/eventlet.py", line 42, in __call__
+    return super().__call__(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 141, in __call__
+    self.handler(ws)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 183, in _websocket_handler
+    pkt = websocket_wait()
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 156, in websocket_wait
+    data = ws.wait()
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 825, in wait
+    for i in self.iterator:
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 666, in _iter_frames
+    message = self._recv_frame(message=fragmented_message)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 692, in _recv_frame
+    header = recv(2)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 594, in _get_bytes
+    d = self.socket.recv(numbytes - len(data))
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 204, in handle_abort
+    sys.exit(1)
+SystemExit: 1
+[2025-06-11 15:13:00 +0100] [4488] [INFO] Worker exiting (pid: 4488)
+[2025-06-11 15:13:01 +0100] [4537] [INFO] Booting worker with pid: 4537
+Invalid session Z_ypkPkXDdi_hdiaAAAA (further occurrences of this error will be logged with level INFO)
+[2025-06-11 15:13:34 +0100] [4201] [CRITICAL] WORKER TIMEOUT (pid:4537)
+[2025-06-11 15:13:34 +0100] [4537] [ERROR] Error handling request /socket.io/?EIO=4&transport=websocket&sid=_Cjm5N-XL6N33vh4AAAA
+Traceback (most recent call last):
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/sync.py", line 134, in handle
+    self.handle_request(listener, req, client, addr)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/sync.py", line 177, in handle_request
+    respiter = self.wsgi(environ, resp.start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask_socketio/__init__.py", line 42, in __call__
+    return super().__call__(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/middleware.py", line 63, in __call__
+    return self.engineio_app.handle_request(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/socketio/server.py", line 434, in handle_request
+    return self.eio.handle_request(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/server.py", line 286, in handle_request
+    packets = socket.handle_get_request(
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 92, in handle_get_request
+    return getattr(self, '_upgrade_' + transport)(environ,
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 151, in _upgrade_websocket
+    return ws(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/async_drivers/eventlet.py", line 42, in __call__
+    return super().__call__(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 141, in __call__
+    self.handler(ws)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 183, in _websocket_handler
+    pkt = websocket_wait()
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 156, in websocket_wait
+    data = ws.wait()
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 825, in wait
+    for i in self.iterator:
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 666, in _iter_frames
+    message = self._recv_frame(message=fragmented_message)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 692, in _recv_frame
+    header = recv(2)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 594, in _get_bytes
+    d = self.socket.recv(numbytes - len(data))
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 204, in handle_abort
+    sys.exit(1)
+SystemExit: 1
+[2025-06-11 15:13:34 +0100] [4537] [INFO] Worker exiting (pid: 4537)
+[2025-06-11 15:13:34 +0100] [4584] [INFO] Booting worker with pid: 4584
+Invalid session _Cjm5N-XL6N33vh4AAAA (further occurrences of this error will be logged with level INFO)
+[2025-06-11 15:13:57 +0100] [4201] [INFO] Handling signal: int
+[2025-06-11 15:13:57 +0100] [4584] [ERROR] Error handling request /socket.io/?EIO=4&transport=websocket&sid=MbzklbOUIaZbcO8sAAAA
+Traceback (most recent call last):
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/sync.py", line 134, in handle
+    self.handle_request(listener, req, client, addr)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/sync.py", line 177, in handle_request
+    respiter = self.wsgi(environ, resp.start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask_socketio/__init__.py", line 42, in __call__
+    return super().__call__(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/middleware.py", line 63, in __call__
+    return self.engineio_app.handle_request(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/socketio/server.py", line 434, in handle_request
+    return self.eio.handle_request(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/server.py", line 286, in handle_request
+    packets = socket.handle_get_request(
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 92, in handle_get_request
+    return getattr(self, '_upgrade_' + transport)(environ,
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 151, in _upgrade_websocket
+    return ws(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/async_drivers/eventlet.py", line 42, in __call__
+    return super().__call__(environ, start_response)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 141, in __call__
+    self.handler(ws)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 183, in _websocket_handler
+    pkt = websocket_wait()
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/engineio/socket.py", line 156, in websocket_wait
+    data = ws.wait()
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 825, in wait
+    for i in self.iterator:
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 666, in _iter_frames
+    message = self._recv_frame(message=fragmented_message)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 692, in _recv_frame
+    header = recv(2)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/websocket.py", line 594, in _get_bytes
+    d = self.socket.recv(numbytes - len(data))
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 198, in handle_quit
+    time.sleep(0.1)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 199, in handle_quit
+    sys.exit(0)
+SystemExit: 0
+[2025-06-11 15:13:57 +0100] [4584] [INFO] Worker exiting (pid: 4584)
+[2025-06-11 15:13:58 +0100] [4201] [INFO] Shutting down: Master
+[2025-06-11 15:51:16 +0100] [8517] [INFO] Starting gunicorn 23.0.0
+[2025-06-11 15:51:16 +0100] [8517] [INFO] Listening at: http://0.0.0.0:5005 (8517)
+[2025-06-11 15:51:16 +0100] [8517] [INFO] Using worker: eventlet
+[2025-06-11 15:51:16 +0100] [8518] [INFO] Booting worker with pid: 8518
+server=192.168.1.173:5005//socket.io/ client=192.168.1.152:55246 socket shutdown error: [Errno 9] Bad file descriptorserver=192.168.1.173:5005//socket.io/ client=192.168.1.152:55264 socket shutdown error: [Errno 9] Bad file descriptor[2025-06-19 09:46:54 +0100] [8517] [INFO] Handling signal: winch
+[2025-06-19 09:47:10 +0100] [8517] [INFO] Handling signal: winch
+server=192.168.1.173:5005//socket.io/ client=192.168.1.173:42100 socket shutdown error: [Errno 9] Bad file descriptor[2025-06-19 09:47:30,488] ERROR in app: Exception on /chat [GET]
+Traceback (most recent call last):
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask_cors/extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/app.py", line 124, in chats
+    return redirect(url_for("login"))
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask/helpers.py", line 232, in url_for
+    return current_app.url_for(
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask/app.py", line 1121, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask/app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/werkzeug/routing/map.py", line 924, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'login'. Did you mean 'logout.debug_session' instead?
+[2025-06-19 09:47:32,106] ERROR in app: Exception on /chat [GET]
+Traceback (most recent call last):
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask_cors/extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/app.py", line 124, in chats
+    return redirect(url_for("login"))
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask/helpers.py", line 232, in url_for
+    return current_app.url_for(
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask/app.py", line 1121, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/flask/app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/werkzeug/routing/map.py", line 924, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'login'. Did you mean 'logout.debug_session' instead?
+[2025-06-19 09:47:36 +0100] [8517] [INFO] Handling signal: int
+[2025-06-19 09:47:36 +0100] [8518] [INFO] Worker exiting (pid: 8518)
+User joined group: None
+User joined group: 67
+User joined group: 67
+User joined group: 67
+Unread Count - Private: {'680e3df2035f3805393eec8b': 0, '680f8b991fde508555e1357c': 0, '682c80ad147fba491d39641c': 0}
+Unread Count - Group: {'67c9082232874336da385fd5': 0, '67c9082332874336da385fda': 0}
+Fetching profile picture for user: 67ff8606230574bd2ea0eea5
+User data fetched: {'_id': ObjectId('67ff8606230574bd2ea0eea5'), 'image': '67ff8606230574bd2ea0eea3'}
+Image ID found: 67ff8606230574bd2ea0eea3
+Image successfully retrieved from GridFS
+User joined group: None
+User joined group: 67c9082232874336da385fd5
+User joined group: 67c9082232874336da385fd5
+User joined group: 67c9082232874336da385fd5
+User joined group: 67c9082232874336da385fd5
+Exception ignored in atexit callback: <function _shutdown_resources at 0x74f0017f13f0>
+Traceback (most recent call last):
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/pymongo/synchronous/monitor.py", line 538, in _shutdown_resources
+    shutdown()
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/pymongo/periodic_executor.py", line 291, in _shutdown_executors
+    executor.join(1)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/pymongo/periodic_executor.py", line 208, in join
+    self._thread.join(timeout)
+  File "/usr/lib/python3.10/threading.py", line 1100, in join
+    self._wait_for_tstate_lock(timeout=max(timeout, 0))
+  File "/usr/lib/python3.10/threading.py", line 1116, in _wait_for_tstate_lock
+    if lock.acquire(block, timeout):
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/semaphore.py", line 107, in acquire
+    hubs.get_hub().switch()
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/hubs/hub.py", line 310, in switch
+    return self.greenlet.switch()
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/hubs/hub.py", line 352, in run
+    self.fire_timers(self.clock())
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/hubs/hub.py", line 471, in fire_timers
+    timer()
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/hubs/timer.py", line 59, in __call__
+    cb(*args, **kw)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/eventlet/greenthread.py", line 272, in main
+    result = function(*args, **kwargs)
+  File "/home/ubongudofia/Desktop/dsa_messenger_prod/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 199, in handle_quit
+    sys.exit(0)
+SystemExit: 0
+[2025-06-19 09:47:37 +0100] [8517] [INFO] Shutting down: Master

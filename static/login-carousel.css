@@ -1,0 +1,588 @@
+/* ==========================================================================
+   DSA MESSENGER - FULL-BLEED 50%/50% SPLIT LOGIN WITH HERO CAROUSEL
+   ========================================================================== */
+
+html, body.login-page-body {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    background-color: #f8fafc;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Full Screen Two-Halves Container */
+.login-full-screen {
+    display: flex;
+    flex-direction: row;
+    width: 100vw;
+    height: 100vh;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    position: relative;
+    box-sizing: border-box;
+}
+
+/* ==========================================================================
+   LEFT HALF: LOGIN FORM PANE (50%)
+   ========================================================================== */
+.login-form-pane {
+    flex: 0 0 50%;
+    width: 50%;
+    max-width: 50%;
+    height: 100vh;
+    min-height: 100vh;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    padding: 40px 32px;
+    box-sizing: border-box;
+    border-right: 1px solid #e2e8f0;
+    z-index: 2;
+}
+
+/* Custom Slim Scrollbar for Left Pane */
+.login-form-pane::-webkit-scrollbar {
+    width: 6px;
+}
+.login-form-pane::-webkit-scrollbar-track {
+    background: transparent;
+}
+.login-form-pane::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.4);
+    border-radius: 4px;
+}
+.login-form-pane::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.6);
+}
+
+/* Focused User Login Content Card with Elevated Box-Shadow */
+.login-form-inner {
+    width: 100%;
+    max-width: 440px;
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 38px 36px 30px 36px;
+    box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.12), 
+                0 10px 20px -5px rgba(15, 23, 42, 0.06), 
+                0 0 0 1px rgba(226, 232, 240, 0.85);
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.login-form-inner:focus-within {
+    box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.16), 
+                0 12px 24px -6px rgba(15, 23, 42, 0.08), 
+                0 0 0 1.5px rgba(0, 128, 105, 0.35);
+}
+
+.login-form-inner .brand {
+    margin-bottom: 22px;
+    text-align: center;
+}
+
+.login-form-inner .brand-logo {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.login-form-inner .brand-logo img {
+    width: 76px;
+    height: 76px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 14px rgba(0, 128, 105, 0.22));
+    transition: transform 0.3s ease;
+}
+
+.login-form-inner .brand-logo img:hover {
+    transform: scale(1.05);
+}
+
+.login-form-inner .app-brand-title {
+    font-size: 21px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 10px 0 4px 0;
+    letter-spacing: -0.3px;
+    line-height: 1.3;
+}
+
+.login-form-inner .welcome-text {
+    font-size: 14.5px;
+    font-weight: 500;
+    color: #64748b;
+    margin: 0;
+    letter-spacing: 0.1px;
+}
+
+.login-form-inner .form-group {
+    margin-bottom: 18px;
+    position: relative;
+}
+
+.login-form-inner .form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    letter-spacing: 0.1px;
+}
+
+.login-form-inner .form-group input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 10px;
+    font-size: 14px;
+    color: #0f172a;
+    background: #f8fafc;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+}
+
+.login-form-inner .form-group input:focus {
+    outline: none;
+    border-color: #008069;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(0, 128, 105, 0.15);
+}
+
+.login-form-inner .form-group .error {
+    color: #ef4444;
+    font-size: 12px;
+    font-weight: 500;
+    margin-top: 4px;
+    min-height: 18px;
+}
+
+.login-form-inner .remember-forgot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 22px;
+    font-size: 13px;
+}
+
+.login-form-inner .remember-me {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #475569;
+    font-weight: 500;
+    user-select: none;
+}
+
+.login-form-inner .remember-me input[type="checkbox"] {
+    accent-color: #008069;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.login-form-inner .forgot-password {
+    color: #008069;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.login-form-inner .forgot-password:hover {
+    color: #00604f;
+    text-decoration: underline;
+}
+
+.login-form-inner .login-btn {
+    width: 100%;
+    padding: 13px 20px;
+    background: linear-gradient(135deg, #008069 0%, #00a884 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 14px rgba(0, 128, 105, 0.28);
+    letter-spacing: 0.2px;
+}
+
+.login-form-inner .login-btn:hover {
+    background: linear-gradient(135deg, #006c59 0%, #009373 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 128, 105, 0.38);
+}
+
+.login-form-inner .login-btn:active {
+    transform: translateY(0);
+}
+
+.login-form-inner .login-btn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.login-form-inner .footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 24px;
+    opacity: 0.85;
+}
+
+.login-form-inner .footer-logo img {
+    height: 28px;
+    object-fit: contain;
+}
+
+.login-form-inner .footer-note p {
+    font-size: 11.5px;
+    color: #64748b;
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* ==========================================================================
+   RIGHT HALF: FULL HERO CAROUSEL PANE (50%)
+   ========================================================================== */
+.login-carousel-pane {
+    flex: 0 0 50%;
+    width: 50%;
+    max-width: 50%;
+    height: 100vh;
+    min-height: 100vh;
+    position: relative;
+    overflow: hidden;
+    background: #0b1120;
+    display: flex;
+    flex-direction: column;
+    user-select: none;
+    box-sizing: border-box;
+}
+
+.carousel-slides-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.carousel-slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.85s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.85s ease;
+    pointer-events: none;
+}
+
+.carousel-slide.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    z-index: 2;
+}
+
+.carousel-image-wrap {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.carousel-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 20%;
+    transform: scale(1);
+    transition: transform 7s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.carousel-slide.active .carousel-img {
+    transform: scale(1.05);
+}
+
+/* Cinematic Dark Gradient Overlay for Maximum Legibility */
+.carousel-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        180deg,
+        rgba(11, 17, 32, 0.18) 0%,
+        rgba(11, 17, 32, 0.32) 40%,
+        rgba(11, 17, 32, 0.86) 80%,
+        rgba(11, 17, 32, 0.98) 100%
+    );
+}
+
+/* Captions */
+.carousel-caption {
+    position: absolute;
+    bottom: 68px;
+    left: 48px;
+    right: 48px;
+    z-index: 5;
+    transform: translateY(12px);
+    opacity: 0;
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s, opacity 0.6s ease 0.15s;
+}
+
+.carousel-slide.active .carousel-caption {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.carousel-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0, 128, 105, 0.92);
+    color: #ffffff;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+    margin-bottom: 10px;
+}
+
+.carousel-title {
+    font-size: 26px;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.25;
+    margin: 0 0 8px 0;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+    letter-spacing: -0.4px;
+}
+
+.carousel-desc {
+    font-size: 14.5px;
+    color: #e2e8f0;
+    line-height: 1.55;
+    margin: 0;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
+    max-width: 92%;
+}
+
+/* Floating Navigation Arrows */
+.carousel-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.16);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    z-index: 10;
+    opacity: 0.85;
+    outline: none;
+}
+
+.carousel-arrow:hover {
+    background: #008069;
+    border-color: #008069;
+    color: #ffffff;
+    opacity: 1;
+    transform: translateY(-50%) scale(1.12);
+    box-shadow: 0 6px 20px rgba(0, 128, 105, 0.5);
+}
+
+.carousel-arrow-prev {
+    left: 24px;
+}
+
+.carousel-arrow-next {
+    right: 24px;
+}
+
+/* Modern Indicator Dots */
+.carousel-dots {
+    position: absolute;
+    bottom: 26px;
+    left: 48px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 10;
+}
+
+.carousel-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.4);
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    outline: none;
+    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.carousel-dot:hover {
+    background: rgba(255, 255, 255, 0.8);
+}
+
+.carousel-dot.active {
+    width: 32px;
+    background: #008069;
+    box-shadow: 0 0 14px rgba(0, 128, 105, 0.9);
+}
+
+/* Animated Progress Bar */
+.carousel-progress-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.15);
+    z-index: 10;
+    overflow: hidden;
+}
+
+.carousel-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: #008069;
+    box-shadow: 0 0 10px #008069;
+    transition: width 0.05s linear;
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN (TABLETS & MOBILE PHONES)
+   ========================================================================== */
+
+@media screen and (max-width: 960px) {
+    .login-full-screen {
+        flex-direction: column;
+        height: auto;
+        min-height: 100vh;
+        overflow-y: auto;
+    }
+
+    /* Picture carousel comes FIRST on mobile */
+    .login-carousel-pane {
+        order: 1;
+        flex: none;
+        width: 100%;
+        max-width: 100%;
+        height: 280px;
+        min-height: 280px;
+    }
+
+    /* Login form comes SECOND on mobile */
+    .login-form-pane {
+        order: 2;
+        flex: 1;
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+        min-height: calc(100vh - 280px);
+        border-right: none;
+        padding: 28px 18px 24px 18px;
+        overflow-y: visible;
+    }
+
+    .login-form-inner {
+        padding: 28px 22px 22px 22px;
+        border-radius: 18px;
+        box-shadow: 0 15px 35px -5px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(226, 232, 240, 0.85);
+    }
+
+    .carousel-caption {
+        bottom: 24px;
+        left: 20px;
+        right: 20px;
+    }
+
+    .carousel-title {
+        font-size: 20px;
+        margin-bottom: 2px;
+    }
+
+    .carousel-desc {
+        display: none; /* Hide multi-line text on mobile hero banner */
+    }
+
+    .carousel-dots {
+        bottom: 12px;
+        left: 20px;
+    }
+
+    .carousel-arrow {
+        width: 34px;
+        height: 34px;
+        font-size: 20px;
+    }
+
+    .carousel-arrow-prev {
+        left: 10px;
+    }
+
+    .carousel-arrow-next {
+        right: 10px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .login-carousel-pane {
+        order: 1;
+        height: 230px;
+        min-height: 230px;
+    }
+
+    .login-form-pane {
+        order: 2;
+        padding: 20px 14px 20px 14px;
+        min-height: calc(100vh - 230px);
+    }
+
+    .login-form-inner {
+        padding: 24px 18px 20px 18px;
+        border-radius: 16px;
+    }
+
+    .login-form-inner .app-brand-title {
+        font-size: 19px;
+    }
+}

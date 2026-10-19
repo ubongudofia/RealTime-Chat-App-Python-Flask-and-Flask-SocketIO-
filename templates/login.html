@@ -5,53 +5,185 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.2.0/fonts/remixicon.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='tailwindcss-colors.css')}}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css')}}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='login-carousel.css')}}?v=4" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='pwa-installer.css')}}" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/png" sizes="192x192"
+        href="{{ url_for('static', filename='icons/dsa-logo-192x192.png') }}" />
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/dsa-logo-192x192.png') }}" />
+    <meta name="theme-color" content="#008069">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="DSA Messenger">
+
+    <script src="{{ url_for('static', filename='pwa-installer.js') }}" defer></script>
+
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
+                    .then(reg => reg.update())
+                    .catch(err => console.error('Service worker registration failed:', err));
+            });
+        }
+
+        window.addEventListener("DOMContentLoaded", () => {
+            fetch("/check_session")
+                .then(res => res.json())
+                .then(data => {
+                    if (data.logged_in) {
+                        window.location.href = "/chat";
+                    }
+                })
+                .catch(err => console.error("Session check failed", err));
+        });
+    </script>
+
 </head>
 
-<body>
-    <div class="chat-body">
-        <div class="login-card">
-            <div class="brand">
-                <div class="brand-logo">
-                    <img src="{{ url_for('static', filename='images/dsa-logo.jfif') }}" alt="DSA Logo">
-                </div>
-                <p>Welcome Back!!!</p>
-            </div>
-
-            <form id="loginForm" action="/submit_login" method="POST">
-                <div class="form-group">
-                    <label for="staffid">Staff ID</label>
-                    <input type="text" id="staffid" name="staffid" placeholder="Enter your Staff ID">
-                    <div class="error" id="staffidError"></div>
-                </div>
-
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" placeholder="Enter your password">
-                    <div class="error" id="passwordError"></div>
-                </div>
-
-                <div class="remember-forgot">
-                    <div class="remember-me">
-                        <input type="checkbox" id="remember" name="remember">
-                        <label for="remember">Remember me</label>
+<body class="login-page-body">
+    <div class="login-full-screen">
+        <!-- Left Half: Login Details (50%) -->
+        <div class="login-form-pane">
+            <div class="login-form-inner">
+                <div class="brand">
+                    <div class="brand-logo">
+                        <img src="{{ url_for('static', filename='images/dsa-logo.png') }}" alt="DSA Logo">
                     </div>
-                    <a href="/forgot_password" class="forgot-password">Forgot password?</a>
+                    <h2 class="app-brand-title">DSA Messenger Application</h2>
+                    <p class="welcome-text">Welcome Back</p>
+                </div>
+                        <form id="loginForm" action="/submit_login" method="POST">
+                            <div class="form-group">
+                                <label for="staffid">Staff ID</label>
+                                <input type="text" id="staffid" name="staffid" autocomplete="staffid"
+                                    placeholder="Enter your Staff ID" value="{{ staffid|default('') }}">
+                                <div class="error" id="staffidError"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="password">Password</label>
+                                <input type="password" id="password" name="password" autocomplete="current-password"
+                                    placeholder="Enter your password">
+                                <div class="error" id="passwordError">{% if error %}{{ error }}{% endif %}</div>
+                            </div>
+
+                            <div class="remember-forgot">
+                                <div class="remember-me">
+                                    <input type="checkbox" id="remember" name="remember">
+                                    <label for="remember">Remember me</label>
+                                </div>
+                                <a href="/forgot_password" class="forgot-password">Forgot password?</a>
+                            </div>
+
+                            <button type="submit" class="login-btn" id="loginButton">
+                                Sign in
+                            </button>
+                        </form>
+
+                        <div style="text-align: center; margin: 12px 0 0 0;">
+                            <button type="button" class="pwa-install-btn" id="loginPwaInstallBtn" onclick="triggerPWAInstall(event)" style="display:none; align-items:center; justify-content:center; gap:8px; background:#008069; color:#ffffff; border:none; border-radius:10px; padding:9px 18px; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 3px 10px rgba(0, 128, 105, 0.25); transition:all 0.2s ease;">
+                                <i class="ri-download-cloud-2-line" style="font-size:16px;"></i> Install App
+                            </button>
+                        </div>
+
+                        <div class="footer" style="margin-top: 24px;">
+                            <div class="footer-logo">
+                                <img src="{{ url_for('static', filename='images/savl-logo.png') }}" alt="AI Logo">
+                            </div>
+                            <div class="footer-note">
+                                <p>Developed By Space and Air Vehicle Laboratory</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <button type="submit" class="login-btn" id="loginButton">
-                    Sign in
-                </button>
-            </form>
+                    <!-- Right: Modern 4-Image Hero Carousel Pane -->
+                    <div class="login-carousel-pane" id="loginCarouselPane">
+                        <div class="carousel-progress-bar">
+                            <div class="carousel-progress-fill" id="carouselProgressFill"></div>
+                        </div>
 
-            <div class="signup-link">
-                <p>Don't have an account? <a href="/register">Sign up</a></p>
-            </div>
-        </div>
+                        <div class="carousel-slides-container">
+                            <!-- Slide 1: CDS -->
+                            <div class="carousel-slide active" data-index="0">
+                                <div class="carousel-image-wrap">
+                                    <img src="{{ url_for('static', filename='images/CDS.jpeg') }}" alt="Chief of Defence Staff" class="carousel-img">
+                                    <div class="carousel-overlay"></div>
+                                </div>
+                                <div class="carousel-caption">
+                                    <span class="carousel-tag"><i class="ri-shield-star-line"></i> Leadership & Command</span>
+                                    <h3 class="carousel-title">Defence Headquarters</h3>
+                                    <p class="carousel-desc">Strategic direction, national sovereignty and mission readiness across the Armed Forces.</p>
+                                </div>
+                            </div>
+
+                            <!-- Slide 2: CDSA -->
+                            <div class="carousel-slide" data-index="1">
+                                <div class="carousel-image-wrap">
+                                    <img src="{{ url_for('static', filename='images/CDSA.png') }}" alt="Chief of Defence Space Administration" class="carousel-img">
+                                    <div class="carousel-overlay"></div>
+                                </div>
+                                <div class="carousel-caption">
+                                    <span class="carousel-tag"><i class="ri-radar-line"></i> Space & Cyberspace</span>
+                                    <h3 class="carousel-title">Defence Space Administration</h3>
+                                    <p class="carousel-desc">Harnessing space capabilities, satellite intelligence and secure defense cybersecurity.</p>
+                                </div>
+                            </div>
+
+                            <!-- Slide 3: DCDSA -->
+                            <div class="carousel-slide" data-index="2">
+                                <div class="carousel-image-wrap">
+                                    <img src="{{ url_for('static', filename='images/DCDSA.png') }}" alt="Deputy Chief of Defence Space Administration" class="carousel-img">
+                                    <div class="carousel-overlay"></div>
+                                </div>
+                                <div class="carousel-caption">
+                                    <span class="carousel-tag"><i class="ri-cpu-line"></i> Operations & Innovation</span>
+                                    <h3 class="carousel-title">Technological Excellence</h3>
+                                    <p class="carousel-desc">Fostering research, operational coordination, and mission-critical communications.</p>
+                                </div>
+                            </div>
+
+                            <!-- Slide 4: CDSA 2 -->
+                            <div class="carousel-slide" data-index="3">
+                                <div class="carousel-image-wrap">
+                                    <img src="{{ url_for('static', filename='images/CDSA 2.jpeg') }}" alt="Defence Space Administration Leadership" class="carousel-img">
+                                    <div class="carousel-overlay"></div>
+                                </div>
+                                <div class="carousel-caption">
+                                    <span class="carousel-tag"><i class="ri-lock-2-line"></i> Secure Communications</span>
+                                    <h3 class="carousel-title">DSA Messenger Network</h3>
+                                    <p class="carousel-desc">End-to-end encrypted messaging, voice notes and instant collaboration for DSA personnel.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Prev / Next Navigation Arrows -->
+                        <button type="button" class="carousel-arrow carousel-arrow-prev" id="carouselPrevBtn" aria-label="Previous Slide">
+                            <i class="ri-arrow-left-s-line"></i>
+                        </button>
+                        <button type="button" class="carousel-arrow carousel-arrow-next" id="carouselNextBtn" aria-label="Next Slide">
+                            <i class="ri-arrow-right-s-line"></i>
+                        </button>
+
+                        <!-- Indicator Dots -->
+                        <div class="carousel-dots" id="carouselDots">
+                            <button type="button" class="carousel-dot active" data-slide="0" aria-label="Slide 1"></button>
+                            <button type="button" class="carousel-dot" data-slide="1" aria-label="Slide 2"></button>
+                            <button type="button" class="carousel-dot" data-slide="2" aria-label="Slide 3"></button>
+                            <button type="button" class="carousel-dot" data-slide="3" aria-label="Slide 4"></button>
+                        </div>
+                    </div>
     </div>
 </body>
 
 </html>
+
 <script>
     document.getElementById("loginForm").addEventListener("submit", function (event) {
         event.preventDefault();
@@ -62,6 +194,7 @@
         let isValid = true;
         const staffid = document.getElementById("staffid").value.trim();
         const password = document.getElementById("password").value.trim();
+        const remember = document.getElementById("remember")?.checked || false;
 
         if (staffid === "") {
             document.getElementById("staffidError").textContent = "Staff ID is required.";
@@ -75,23 +208,138 @@
 
         if (!isValid) return;
 
+        const loginBtn = document.getElementById("loginButton");
+        const originalBtnText = loginBtn ? loginBtn.innerHTML : "Sign in";
+        if (loginBtn) {
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = "Signing in...";
+        }
+
         fetch('/submit_login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ staffid, password })
+            body: JSON.stringify({ staffid, password, remember })
         })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    sessionStorage.setItem("staffid", staffid);
-                    window.location.href = data.redirect;
+            .then(async response => {
+                const data = await response.json().catch(() => ({}));
+                if (response.ok && data.success) {
+                    window.location.href = data.redirect || "/chat";
                 } else {
-                    document.getElementById("passwordError").textContent = data.error;
+                    document.getElementById("passwordError").textContent = data.error || "Login failed. Please check your credentials.";
+                    if (loginBtn) {
+                        loginBtn.disabled = false;
+                        loginBtn.innerHTML = originalBtnText;
+                    }
                 }
             })
             .catch(error => {
                 console.error("Login error:", error);
+                document.getElementById("passwordError").textContent = "Connection error. Please try again.";
+                if (loginBtn) {
+                    loginBtn.disabled = false;
+                    loginBtn.innerHTML = originalBtnText;
+                }
             });
     });
 
+    // =========================================================================
+    // DSA MODERN HERO CAROUSEL CONTROLLER
+    // =========================================================================
+    (function () {
+        const slides = document.querySelectorAll('.carousel-slide');
+        const dots = document.querySelectorAll('.carousel-dot');
+        const prevBtn = document.getElementById('carouselPrevBtn');
+        const nextBtn = document.getElementById('carouselNextBtn');
+        const carouselPane = document.getElementById('loginCarouselPane');
+        const progressFill = document.getElementById('carouselProgressFill');
+
+        if (!slides.length) return;
+
+        let currentIndex = 0;
+        let progressInterval = null;
+        const SLIDE_DURATION = 5000; // 5 seconds per slide
+        const TICK_INTERVAL = 50;
+        let elapsed = 0;
+        let isPaused = false;
+
+        function goToSlide(index) {
+            if (index < 0) index = slides.length - 1;
+            if (index >= slides.length) index = 0;
+
+            slides.forEach((slide, i) => {
+                slide.classList.toggle('active', i === index);
+            });
+            dots.forEach((dot, i) => {
+                dot.classList.toggle('active', i === index);
+            });
+
+            currentIndex = index;
+            resetProgress();
+        }
+
+        function nextSlide() {
+            goToSlide(currentIndex + 1);
+        }
+
+        function prevSlide() {
+            goToSlide(currentIndex - 1);
+        }
+
+        function resetProgress() {
+            elapsed = 0;
+            if (progressFill) progressFill.style.width = '0%';
+        }
+
+        function startAutoPlay() {
+            if (progressInterval) clearInterval(progressInterval);
+            progressInterval = setInterval(() => {
+                if (!isPaused) {
+                    elapsed += TICK_INTERVAL;
+                    const pct = Math.min((elapsed / SLIDE_DURATION) * 100, 100);
+                    if (progressFill) progressFill.style.width = pct + '%';
+                    if (elapsed >= SLIDE_DURATION) {
+                        nextSlide();
+                    }
+                }
+            }, TICK_INTERVAL);
+        }
+
+        if (nextBtn) nextBtn.addEventListener('click', (e) => { e.preventDefault(); nextSlide(); });
+        if (prevBtn) prevBtn.addEventListener('click', (e) => { e.preventDefault(); prevSlide(); });
+
+        dots.forEach((dot, idx) => {
+            dot.addEventListener('click', (e) => { e.preventDefault(); goToSlide(idx); });
+        });
+
+        if (carouselPane) {
+            carouselPane.addEventListener('mouseenter', () => { isPaused = true; });
+            carouselPane.addEventListener('mouseleave', () => { isPaused = false; });
+
+            // Touch Swipe for Mobile / Tablets
+            let touchStartX = 0;
+            carouselPane.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+                isPaused = true;
+            }, { passive: true });
+
+            carouselPane.addEventListener('touchend', (e) => {
+                const touchEndX = e.changedTouches[0].screenX;
+                isPaused = false;
+                if (touchStartX - touchEndX > 45) {
+                    nextSlide();
+                } else if (touchEndX - touchStartX > 45) {
+                    prevSlide();
+                }
+            }, { passive: true });
+        }
+
+        // Keyboard arrow navigation
+        document.addEventListener('keydown', (e) => {
+            if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+            if (e.key === 'ArrowRight') nextSlide();
+            if (e.key === 'ArrowLeft') prevSlide();
+        });
+
+        startAutoPlay();
+    })();
 </script>

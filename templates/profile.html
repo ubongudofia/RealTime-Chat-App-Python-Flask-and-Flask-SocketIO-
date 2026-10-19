@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.2.0/fonts/remixicon.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}?v=5" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='tailwindcss-colors.css') }}" />
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}" />
+    <meta name="theme-color" content="#008069">
+    <title>Profile - DSA Messenger</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            color: #111b21;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .wa-profile-layout {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            background: #f0f2f5;
+        }
+
+        /* Left WhatsApp Profile Drawer */
+        .wa-profile-drawer {
+            width: 420px;
+            max-width: 100%;
+            height: 100%;
+            background: #f0f2f5;
+            border-right: 1px solid #d1d7db;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .wa-drawer-header {
+            height: 108px;
+            background: linear-gradient(135deg, #008069 0%, #10b981 100%);
+            color: #ffffff;
+            display: flex;
+            align-items: flex-end;
+            padding: 0 24px 18px 24px;
+            gap: 24px;
+            flex-shrink: 0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+        }
+
+        .wa-back-btn {
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            font-size: 24px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            text-decoration: none;
+            transition: background 0.2s ease;
+        }
+
+        .wa-back-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .wa-drawer-title {
+            font-size: 19px;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+            line-height: 36px;
+        }
+
+        .wa-drawer-content {
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: 32px;
+        }
+
+        /* Avatar Section */
+        .wa-avatar-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 28px 0 24px;
+            position: relative;
+        }
+
+        .wa-avatar-wrapper {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            cursor: pointer;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+            background: #ffffff;
+            border: 4px solid #ffffff;
+        }
+
+        .wa-avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.3s ease;
+        }
+
+        .wa-avatar-wrapper:hover .wa-avatar-img {
+            transform: scale(1.03);
+        }
+
+        .wa-avatar-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(17, 27, 33, 0.6);
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            padding: 20px;
+        }
+
+        .wa-avatar-wrapper:hover .wa-avatar-overlay,
+        .wa-avatar-wrapper.menu-open .wa-avatar-overlay {
+            opacity: 1;
+        }
+
+        .wa-avatar-overlay i {
+            font-size: 28px;
+            margin-bottom: 6px;
+        }
+
+        .wa-avatar-overlay span {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            line-height: 1.35;
+        }
+
+        /* Photo Action Menu */
+        .wa-photo-menu {
+            position: absolute;
+            top: 215px;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(17, 27, 33, 0.18);
+            padding: 6px 0;
+            min-width: 190px;
+            z-index: 50;
+            display: none;
+            animation: waFadeIn 0.15s ease-out;
+        }
+
+        .wa-photo-menu.active {
+            display: block;
+        }
+
+        .wa-photo-menu button {
+            width: 100%;
+            background: transparent;
+            border: none;
+            padding: 10px 18px;
+            text-align: left;
+            font-size: 14px;
+            color: #3b4a54;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+
+        .wa-photo-menu button:hover {
+            background: #f5f6f6;
+        }
+
+        .wa-photo-menu button.danger {
+            color: #ea0038;
+        }
+
+        .wa-photo-menu button i {
+            font-size: 17px;
+        }
+
+        /* WhatsApp Info Cards */
+        .wa-card {
+            background: #ffffff;
+            padding: 16px 28px 18px;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 2px rgba(11, 20, 26, 0.06);
+        }
+
+        .wa-card-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #008069;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .wa-field-display {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            min-height: 34px;
+        }
+
+        .wa-field-value {
+            font-size: 16px;
+            color: #111b21;
+            word-break: break-word;
+            line-height: 1.4;
+        }
+
+        .wa-icon-btn {
+            background: transparent;
+            border: none;
+            color: #8696a0;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.15s ease, background 0.15s ease;
+            flex-shrink: 0;
+        }
+
+        .wa-icon-btn:hover {
+            color: #008069;
+            background: #f0f2f5;
+        }
+
+        .wa-field-edit {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .wa-field-edit.active {
+            display: flex;
+        }
+
+        .wa-input-row {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .wa-input {
+            width: 100%;
+            border: none;
+            border-bottom: 2px solid #00a884;
+            padding: 6px 2px;
+            font-size: 15px;
+            color: #111b21;
+            outline: none;
+            background: transparent;
+            transition: border-color 0.2s;
+        }
+
+        .wa-input:focus {
+            border-bottom-color: #008069;
+        }
+
+        .wa-edit-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 6px;
+            margin-top: 2px;
+        }
+
+        .wa-char-count {
+            font-size: 12px;
+            color: #8696a0;
+            margin-right: auto;
+        }
+
+        .wa-save-btn {
+            background: #00a884;
+            color: #ffffff;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: background 0.2s ease;
+        }
+
+        .wa-save-btn:hover {
+            background: #008069;
+        }
+
+        .wa-cancel-btn {
+            background: #f0f2f5;
+            color: #54656f;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: background 0.2s ease;
+        }
+
+        .wa-cancel-btn:hover {
+            background: #e2e8f0;
+        }
+
+        .wa-helper-note {
+            padding: 4px 28px 18px;
+            font-size: 13px;
+            color: #667781;
+            line-height: 1.45;
+        }
+
+        /* Quick About Chips */
+        .wa-about-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #f0f2f5;
+        }
+
+        .wa-chip {
+            background: #f0f2f5;
+            border: 1px solid #e9edef;
+            color: #3b4a54;
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .wa-chip:hover,
+        .wa-chip.active {
+            background: #d1fae5;
+            border-color: #6ee7b7;
+            color: #065f46;
+            font-weight: 600;
+        }
+
+        /* Info List Items (Staff ID, Directorate) */
+        .wa-info-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f2f5;
+        }
+
+        .wa-info-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .wa-info-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .wa-info-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #ecfdf5;
+            color: #059669;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .wa-info-meta small {
+            display: block;
+            font-size: 12px;
+            color: #667781;
+        }
+
+        .wa-info-meta strong {
+            font-size: 15px;
+            color: #111b21;
+            font-weight: 600;
+        }
+
+        /* Password Form */
+        .wa-password-toggle {
+            width: 100%;
+            background: transparent;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            padding: 4px 0;
+            color: #111b21;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .wa-password-form {
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid #f0f2f5;
+        }
+
+        .wa-password-form.active {
+            display: flex;
+        }
+
+        .wa-pwd-submit {
+            background: #008069;
+            color: #ffffff;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            align-self: flex-start;
+        }
+
+        .wa-pwd-submit:hover {
+            background: #006d59;
+        }
+
+        /* Right Preview Pane (Desktop) */
+        .wa-profile-preview-pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            background-color: #f8f9fa;
+            background-image: radial-gradient(#d1d7db 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+
+        .wa-preview-card {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 36px 40px;
+            max-width: 440px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 12px 32px rgba(11, 20, 26, 0.08);
+            border: 1px solid #e9edef;
+        }
+
+        .wa-preview-avatar {
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin: 0 auto 16px;
+            border: 3px solid #10b981;
+            display: block;
+        }
+
+        .wa-preview-name {
+            font-size: 22px;
+            font-weight: 700;
+            color: #111b21;
+            margin-bottom: 4px;
+        }
+
+        .wa-preview-staff {
+            font-size: 13px;
+            font-weight: 600;
+            color: #059669;
+            background: #ecfdf5;
+            display: inline-block;
+            padding: 3px 12px;
+            border-radius: 999px;
+            margin-bottom: 14px;
+        }
+
+        .wa-preview-about {
+            font-size: 14px;
+            color: #54656f;
+            font-style: italic;
+            background: #f8fafc;
+            padding: 10px 16px;
+            border-radius: 8px;
+            margin-bottom: 22px;
+            border: 1px solid #f1f5f9;
+        }
+
+        .wa-return-chat-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: #008069;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 11px 24px;
+            border-radius: 999px;
+            transition: background 0.2s ease, transform 0.15s ease;
+        }
+
+        .wa-return-chat-btn:hover {
+            background: #006d59;
+            transform: translateY(-1px);
+        }
+
+        /* Lightbox Modal */
+        .wa-lightbox {
+            position: fixed;
+            inset: 0;
+            background: rgba(11, 20, 26, 0.92);
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            padding: 24px;
+        }
+
+        .wa-lightbox.active {
+            display: flex;
+        }
+
+        .wa-lightbox img {
+            max-width: 85vw;
+            max-height: 80vh;
+            border-radius: 12px;
+            object-fit: contain;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .wa-lightbox-close {
+            position: absolute;
+            top: 20px;
+            right: 28px;
+            background: rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            border: none;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Toast */
+        #wa-toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #111b21;
+            color: #ffffff;
+            padding: 10px 20px;
+            border-radius: 999px;
+            font-size: 13.5px;
+            font-weight: 500;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.25s ease;
+            z-index: 10000;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        #wa-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        #wa-toast.error {
+            background: #dc2626;
+        }
+
+        @keyframes waFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-6px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 900px) {
+            .wa-profile-drawer {
+                width: 100%;
+                border-right: none;
+            }
+            .wa-profile-preview-pane {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wa-profile-layout">
+        <!-- Left Navigation Sidebar (same as Chat page) -->
+        <aside class="chat-sidebar">
+            <ul class="chat-sidebar-menu">
+                <li>
+                    <a href="/chat" data-title="Chats">
+                        <i class="ri-chat-3-line"></i>
+                    </a>
+                </li>
+                <li class="active">
+                    <a href="/profile" data-title="Profile">
+                        <i class="ri-user-3-line"></i>
+                    </a>
+                </li>
+                <li class="chat-sidebar-profile">
+                    <button type="button" class="chat-sidebar-profile-toggle" onclick="window.location.href='/chat'">
+                        <img id="sidebarAvatarImg" src="/profile_picture/{{ user_id }}" alt="Profile Picture"
+                            onerror="this.src='/static/images/default-profile.png'">
+                    </button>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- WhatsApp-Style Profile Drawer -->
+        <div class="wa-profile-drawer">
+            <header class="wa-drawer-header">
+                <a href="/chat" class="wa-back-btn" title="Back to Chats">
+                    <i class="ri-arrow-left-line"></i>
+                </a>
+                <h1 class="wa-drawer-title">Profile</h1>
+            </header>
+
+            <div class="wa-drawer-content">
+                <!-- Profile Photo with Camera Overlay -->
+                <div class="wa-avatar-section">
+                    <div class="wa-avatar-wrapper" id="avatarWrapper" onclick="togglePhotoMenu(event)">
+                        <img id="mainProfileAvatar" class="wa-avatar-img" src="/profile_picture/{{ user_id }}"
+                            alt="{{ full_name }}" onerror="this.src='/static/images/default-profile.png'">
+                        <div class="wa-avatar-overlay">
+                            <i class="ri-camera-fill"></i>
+                            <span>Change<br>Profile Photo</span>
+                        </div>
+                    </div>
+
+                    <div class="wa-photo-menu" id="photoMenu">
+                        <button type="button" onclick="viewProfilePhoto()">
+                            <i class="ri-eye-line"></i> View photo
+                        </button>
+                        <button type="button" onclick="triggerPhotoUpload()">
+                            <i class="ri-upload-2-line"></i> Upload photo
+                        </button>
+                        <button type="button" class="danger" onclick="removeProfilePhoto()">
+                            <i class="ri-delete-bin-6-line"></i> Remove photo
+                        </button>
+                    </div>
+
+                    <input type="file" id="profilePhotoInput" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                        style="display: none;" onchange="uploadSelectedPhoto(this)">
+                </div>
+
+                <!-- Your Name Section -->
+                <div class="wa-card">
+                    <div class="wa-card-label">
+                        <span>Your name</span>
+                    </div>
+
+                    <div class="wa-field-display" id="nameDisplayRow">
+                        <span class="wa-field-value" id="nameDisplayValue">{{ full_name }}</span>
+                        <button type="button" class="wa-icon-btn" onclick="openNameEdit()" title="Edit name">
+                            <i class="ri-pencil-line"></i>
+                        </button>
+                    </div>
+
+                    <div class="wa-field-edit" id="nameEditRow">
+                        <div class="wa-input-row">
+                            <input type="text" id="firstNameInput" class="wa-input" placeholder="First name"
+                                value="{{ firstname }}" maxlength="35">
+                            <input type="text" id="lastNameInput" class="wa-input" placeholder="Last name"
+                                value="{{ lastname }}" maxlength="35">
+                        </div>
+                        <div class="wa-edit-actions">
+                            <button type="button" class="wa-cancel-btn" onclick="cancelNameEdit()" title="Cancel">
+                                <i class="ri-close-line"></i>
+                            </button>
+                            <button type="button" class="wa-save-btn" onclick="saveNameEdit()" title="Save">
+                                <i class="ri-check-line"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <p class="wa-helper-note">
+                    This is not your Staff ID or pin. This name will be visible to your DSA Messenger contacts.
+                </p>
+
+                <!-- About Section -->
+                <div class="wa-card">
+                    <div class="wa-card-label">
+                        <span>About</span>
+                    </div>
+
+                    <div class="wa-field-display" id="aboutDisplayRow">
+                        <span class="wa-field-value" id="aboutDisplayValue">{{ about }}</span>
+                        <button type="button" class="wa-icon-btn" onclick="openAboutEdit()" title="Edit about">
+                            <i class="ri-pencil-line"></i>
+                        </button>
+                    </div>
+
+                    <div class="wa-field-edit" id="aboutEditRow">
+                        <input type="text" id="aboutInput" class="wa-input" placeholder="Add about status..."
+                            value="{{ about }}" maxlength="140" oninput="updateAboutCounter()">
+                        <div class="wa-edit-actions">
+                            <span class="wa-char-count" id="aboutCharCount">140</span>
+                            <button type="button" class="wa-cancel-btn" onclick="cancelAboutEdit()" title="Cancel">
+                                <i class="ri-close-line"></i>
+                            </button>
+                            <button type="button" class="wa-save-btn" onclick="saveAboutEdit()" title="Save">
+                                <i class="ri-check-line"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="wa-about-chips">
+                        <button type="button" class="wa-chip" onclick="selectPresetAbout('Available')">Available</button>
+                        <button type="button" class="wa-chip" onclick="selectPresetAbout('Busy')">Busy</button>
+                        <button type="button" class="wa-chip" onclick="selectPresetAbout('In a meeting')">In a meeting</button>
+                        <button type="button" class="wa-chip" onclick="selectPresetAbout('At work')">At work</button>
+                        <button type="button" class="wa-chip" onclick="selectPresetAbout('Urgent messages only')">Urgent messages only</button>
+                    </div>
+                </div>
+
+                <!-- Organization Details Card -->
+                <div class="wa-card">
+                    <div class="wa-card-label">
+                        <span>Organization Info</span>
+                    </div>
+
+                    <div class="wa-info-row">
+                        <div class="wa-info-left">
+                            <div class="wa-info-icon"><i class="ri-id-card-line"></i></div>
+                            <div class="wa-info-meta">
+                                <small>Staff ID</small>
+                                <strong id="staffIdText">{{ staffid }}</strong>
+                            </div>
+                        </div>
+                        <button type="button" class="wa-icon-btn" onclick="copyStaffId()" title="Copy Staff ID">
+                            <i class="ri-file-copy-line"></i>
+                        </button>
+                    </div>
+
+                    <div class="wa-info-row">
+                        <div class="wa-info-left">
+                            <div class="wa-info-icon"><i class="ri-building-4-line"></i></div>
+                            <div class="wa-info-meta">
+                                <small>Directorate / Unit</small>
+                                <strong>{{ directorate }}</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="wa-info-row">
+                        <div class="wa-info-left">
+                            <div class="wa-info-icon"><i class="ri-group-line"></i></div>
+                            <div class="wa-info-meta">
+                                <small>Active Groups</small>
+                                <strong>{{ groups_count }} group{{ '' if groups_count == 1 else 's' }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Change Password Card -->
+                <div class="wa-card">
+                    <button type="button" class="wa-password-toggle" onclick="togglePasswordSection()">
+                        <span style="display:flex;align-items:center;gap:10px;">
+                            <i class="ri-lock-password-line" style="color:#008069;font-size:19px;"></i>
+                            Change Password
+                        </span>
+                        <i class="ri-arrow-down-s-line" id="pwdToggleArrow" style="font-size:20px;color:#667781;"></i>
+                    </button>
+
+                    <form class="wa-password-form" id="passwordForm" onsubmit="submitPasswordChange(event)">
+                        <input type="password" id="currentPassword" class="wa-input" placeholder="Current password" required>
+                        <input type="password" id="newPassword" class="wa-input" placeholder="New password" required>
+                        <input type="password" id="confirmPassword" class="wa-input" placeholder="Confirm new password" required>
+                        <button type="submit" class="wa-pwd-submit">Update Password</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Live Profile Preview Pane -->
+        <div class="wa-profile-preview-pane">
+            <div class="wa-preview-card">
+                <img id="previewCardAvatar" class="wa-preview-avatar" src="/profile_picture/{{ user_id }}"
+                    alt="{{ full_name }}" onerror="this.src='/static/images/default-profile.png'">
+                <h2 class="wa-preview-name" id="previewCardName">{{ full_name }}</h2>
+                <span class="wa-preview-staff">{{ staffid }} &bull; {{ directorate }}</span>
+                <div class="wa-preview-about" id="previewCardAbout">"{{ about }}"</div>
+                <a href="/chat" class="wa-return-chat-btn">
+                    <i class="ri-chat-3-line"></i> Back to Chats
+                </a>
+                <a href="/admin" class="wa-return-chat-btn" style="background: #1e293b; margin-top: 10px;">
+                    <i class="ri-shield-star-line"></i> Admin Console
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lightbox for Viewing Profile Photo -->
+    <div class="wa-lightbox" id="photoLightbox" onclick="closePhotoLightbox(event)">
+        <button type="button" class="wa-lightbox-close" onclick="closePhotoLightbox()">&times;</button>
+        <img id="lightboxImage" src="/profile_picture/{{ user_id }}" alt="{{ full_name }}"
+            onerror="this.src='/static/images/default-profile.png'">
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="wa-toast"></div>
+
+    <script>
+        function showWaToast(message, isError = false) {
+            const toast = document.getElementById("wa-toast");
+            toast.textContent = message;
+            toast.className = isError ? "show error" : "show";
+            clearTimeout(window._waToastTimer);
+            window._waToastTimer = setTimeout(() => {
+                toast.className = "";
+            }, 3200);
+        }
+
+        // Photo Menu Toggle
+        function togglePhotoMenu(event) {
+            event.stopPropagation();
+            const menu = document.getElementById("photoMenu");
+            const wrapper = document.getElementById("avatarWrapper");
+            menu.classList.toggle("active");
+            wrapper.classList.toggle("menu-open", menu.classList.contains("active"));
+        }
+
+        document.addEventListener("click", (e) => {
+            const menu = document.getElementById("photoMenu");
+            const wrapper = document.getElementById("avatarWrapper");
+            if (menu && !menu.contains(e.target) && !wrapper.contains(e.target)) {
+                menu.classList.remove("active");
+                wrapper.classList.remove("menu-open");
+            }
+        });
+
+        function viewProfilePhoto() {
+            document.getElementById("photoMenu").classList.remove("active");
+            document.getElementById("photoLightbox").classList.add("active");
+        }
+
+        function closePhotoLightbox(event) {
+            if (event && event.target.tagName === "IMG") return;
+            document.getElementById("photoLightbox").classList.remove("active");
+        }
+
+        function triggerPhotoUpload() {
+            document.getElementById("photoMenu").classList.remove("active");
+            document.getElementById("profilePhotoInput").click();
+        }
+
+        async function uploadSelectedPhoto(input) {
+            if (!input.files || !input.files[0]) return;
+            const file = input.files[0];
+            const formData = new FormData();
+            formData.append("profile_picture", file);
+
+            try {
+                const res = await fetch("/profile/upload_photo", {
+                    method: "POST",
+                    body: formData
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    updateAllAvatars(data.image_url);
+                    showWaToast("Profile photo updated");
+                } else {
+                    showWaToast(data.error || "Failed to upload photo", true);
+                }
+            } catch (err) {
+                showWaToast("Error uploading photo", true);
+            } finally {
+                input.value = "";
+            }
+        }
+
+        async function removeProfilePhoto() {
+            document.getElementById("photoMenu").classList.remove("active");
+            try {
+                const res = await fetch("/profile/remove_photo", { method: "POST" });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    updateAllAvatars(data.image_url);
+                    showWaToast("Profile photo removed");
+                } else {
+                    showWaToast(data.error || "Failed to remove photo", true);
+                }
+            } catch (err) {
+                showWaToast("Error removing photo", true);
+            }
+        }
+
+        function updateAllAvatars(newUrl) {
+            ["mainProfileAvatar", "previewCardAvatar", "sidebarAvatarImg", "lightboxImage"].forEach(id => {
+                const img = document.getElementById(id);
+                if (img) img.src = newUrl;
+            });
+        }
+
+        // Name Inline Edit
+        function openNameEdit() {
+            document.getElementById("nameDisplayRow").style.display = "none";
+            document.getElementById("nameEditRow").classList.add("active");
+            document.getElementById("firstNameInput").focus();
+        }
+
+        function cancelNameEdit() {
+            document.getElementById("nameEditRow").classList.remove("active");
+            document.getElementById("nameDisplayRow").style.display = "flex";
+        }
+
+        async function saveNameEdit() {
+            const firstname = document.getElementById("firstNameInput").value.trim();
+            const lastname = document.getElementById("lastNameInput").value.trim();
+            if (!firstname || !lastname) {
+                showWaToast("First and last name cannot be empty", true);
+                return;
+            }
+
+            try {
+                const res = await fetch("/profile/update", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ firstname, lastname })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    const fullName = `${data.firstname} ${data.lastname}`.trim();
+                    document.getElementById("nameDisplayValue").textContent = fullName;
+                    document.getElementById("previewCardName").textContent = fullName;
+                    sessionStorage.setItem("firstname", data.firstname);
+                    sessionStorage.setItem("lastname", data.lastname);
+                    cancelNameEdit();
+                    showWaToast("Name updated");
+                } else {
+                    showWaToast(data.error || "Failed to update name", true);
+                }
+            } catch (err) {
+                showWaToast("Error updating name", true);
+            }
+        }
+
+        // About Inline Edit
+        function openAboutEdit() {
+            document.getElementById("aboutDisplayRow").style.display = "none";
+            document.getElementById("aboutEditRow").classList.add("active");
+            updateAboutCounter();
+            document.getElementById("aboutInput").focus();
+        }
+
+        function cancelAboutEdit() {
+            document.getElementById("aboutEditRow").classList.remove("active");
+            document.getElementById("aboutDisplayRow").style.display = "flex";
+        }
+
+        function updateAboutCounter() {
+            const val = document.getElementById("aboutInput").value || "";
+            document.getElementById("aboutCharCount").textContent = String(140 - val.length);
+        }
+
+        async function saveAboutEdit(customAbout = null) {
+            const about = (customAbout !== null ? customAbout : document.getElementById("aboutInput").value).trim() || "Available";
+            try {
+                const res = await fetch("/profile/update", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ about })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    document.getElementById("aboutDisplayValue").textContent = data.about;
+                    document.getElementById("aboutInput").value = data.about;
+                    document.getElementById("previewCardAbout").textContent = `"${data.about}"`;
+                    cancelAboutEdit();
+                    highlightActiveChip(data.about);
+                    showWaToast("About updated");
+                } else {
+                    showWaToast(data.error || "Failed to update About", true);
+                }
+            } catch (err) {
+                showWaToast("Error updating About", true);
+            }
+        }
+
+        function selectPresetAbout(text) {
+            saveAboutEdit(text);
+        }
+
+        function highlightActiveChip(currentAbout) {
+            document.querySelectorAll(".wa-chip").forEach(chip => {
+                chip.classList.toggle("active", chip.textContent.trim() === currentAbout);
+            });
+        }
+        highlightActiveChip(document.getElementById("aboutDisplayValue").textContent.trim());
+
+        // Copy Staff ID
+        function copyStaffId() {
+            const staffId = document.getElementById("staffIdText").textContent.trim();
+            navigator.clipboard.writeText(staffId).then(() => {
+                showWaToast("Staff ID copied to clipboard");
+            });
+        }
+
+        // Password Section
+        function togglePasswordSection() {
+            const form = document.getElementById("passwordForm");
+            const arrow = document.getElementById("pwdToggleArrow");
+            form.classList.toggle("active");
+            arrow.className = form.classList.contains("active") ? "ri-arrow-up-s-line" : "ri-arrow-down-s-line";
+        }
+
+        async function submitPasswordChange(e) {
+            e.preventDefault();
+            const current_password = document.getElementById("currentPassword").value;
+            const new_password = document.getElementById("newPassword").value;
+            const confirm_password = document.getElementById("confirmPassword").value;
+
+            try {
+                const res = await fetch("/profile/change_password", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ current_password, new_password, confirm_password })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    document.getElementById("passwordForm").reset();
+                    togglePasswordSection();
+                    showWaToast("Password changed successfully");
+                } else {
+                    showWaToast(data.error || "Failed to change password", true);
+                }
+            } catch (err) {
+                showWaToast("Error changing password", true);
+            }
+        }
+    </script>
+</body>
+
+</html>

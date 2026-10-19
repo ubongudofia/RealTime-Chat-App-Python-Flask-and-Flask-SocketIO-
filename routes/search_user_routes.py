@@ -24,13 +24,14 @@ from bson.errors import InvalidId
 
 
 # ======================= DATABASE CONNECTION ======================================================
-MONGO_URI = "mongodb://localhost:27017/chatDatabase"
+from config import MONGO_URI, MONGO_DB_NAME  # loaded from environment / .env
 
 # Simple local client
-mongo_client = MongoClient(MONGO_URI)
+from utils.functions import get_mongo_client
+mongo_client = get_mongo_client()  # shared connection pool
 
 # Set up database and GridFS
-db = mongo_client["chatDatabase"]
+db = mongo_client[MONGO_DB_NAME]
 fs = gridfs.GridFS(db)  # GridFS instance
 
 # Set up Flask-PyMongo
@@ -43,7 +44,6 @@ fs = gridfs.GridFS(db)  # GridFS instance
 users = db["users"]
 users_collection = db["users"]
 groups_collection = db["groups"]
-user_groups_collection = db["user_groups"]
 private_chats_collection = db["private_chats"]
 messages_collection = db["messages"]
 questions_collection = db['security_questions']
@@ -95,5 +95,6 @@ def search_users():
     ]
 
     return jsonify(user_list)
+
 
 # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
